@@ -1,7 +1,10 @@
 PROTO_DIR  := proto
 PROTO_FILES := $(shell find $(PROTO_DIR) -name '*.proto')
 
-.PHONY: proto proto-deps proto-clean
+.PHONY: proto proto-deps proto-clean grun
+
+grun:
+	go run ./cmd/engine
 
 proto: proto-deps
 	protoc \
