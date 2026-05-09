@@ -5,8 +5,6 @@ import (
 	"log/slog"
 	"net"
 	"os"
-	"os/signal"
-	"syscall"
 
 	grpcHandlers "github.com/qppffod/myTemp/internal/frontend/grpc"
 	enginev1 "github.com/qppffod/myTemp/proto/engine/v1"
@@ -16,7 +14,7 @@ import (
 
 const grpcAddr = ":7233"
 
-func Start() {
+func Start(ctx context.Context) {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
 	lis, err := net.Listen("tcp", grpcAddr)
@@ -28,9 +26,6 @@ func Start() {
 	srv := grpc.NewServer()
 	enginev1.RegisterEngineServiceServer(srv, grpcHandlers.New())
 	reflection.Register(srv)
-
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
 
 	go func() {
 		<-ctx.Done()
