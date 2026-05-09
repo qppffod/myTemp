@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/qppffod/myTemp/internal/frontend"
 	"github.com/qppffod/myTemp/internal/persistence"
 )
@@ -22,6 +23,16 @@ func main() {
 
 	if err := persistence.RunMigrations(connStr); err != nil {
 		log.Fatalf("migrations: %v", err)
+	}
+
+	pool, err := pgxpool.New(ctx, connStr)
+	if err != nil {
+		log.Fatalf("pool: %v", err)
+	}
+	defer pool.Close()
+
+	if err := pool.Ping(ctx); err != nil {
+		log.Fatalf("ping: %v", err)
 	}
 
 	frontend.Start(ctx)
