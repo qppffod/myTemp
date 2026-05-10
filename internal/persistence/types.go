@@ -1,11 +1,15 @@
 package persistence
 
+import "time"
+
 type WorkflowExecution struct {
 	WorkflowID   string
 	RunID        string
 	WorkflowType string
 	TaskQueue    string
 	Status       string
+	StartedAt    time.Time
+	ClosedAt     *time.Time
 }
 
 type Event struct {
@@ -14,6 +18,7 @@ type Event struct {
 	EventID    int64
 	EventType  string
 	Data       []byte
+	CreatedAt  time.Time
 }
 
 type Task struct {
@@ -25,4 +30,7 @@ type Task struct {
 	ScheduledEventID int64
 	Input            []byte
 	ActivityName     string
+	VisibilityTime   time.Time
+	LeaseOwner       *string
+	LeaseExpiresAt   *time.Time
 }
