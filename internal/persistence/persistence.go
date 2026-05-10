@@ -62,6 +62,55 @@ func (p *Persistence) UpdateWorkflowStatus(ctx context.Context, tx pgx.Tx, workf
 	return err
 }
 
+func (p *Persistence) InsertEvent(ctx context.Context, tx pgx.Tx, e Event) error {
+	_, err := tx.Exec(ctx,
+		`INSERT INTO events (workflow_id, run_id, event_id, event_type, data)
+		 VALUES ($1, $2, $3, $4, $5)`,
+		e.WorkflowID, e.RunID, e.EventID, e.EventType, e.Data,
+	)
+	return err
+}
+
+func (p *Persistence) GetEvents(ctx context.Context, workflowID, runID string) ([]Event, error) {
+	rows, err := p.db.Query(ctx,
+		`SELECT id, workflow_id, run_id, event_id, event_type, data, created_at
+		 FROM events
+		 WHERE workflow_id = $1 AND run_id = $2
+		 ORDER BY event_id`,
+		workflowID, runID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var events []Event
+
+	for rows.Next() {
+		var e Event
+
+		if err := rows.Scan(
+			&e.ID,
+			&e.WorkflowID,
+			&e.RunID,
+			&e.EventID,
+			&e.EventType,
+			&e.Data,
+			&e.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+
+		events = append(events, e)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return events, nil
+}
+
 func (p *Persistence) BeginTx(ctx context.Context) (pgx.Tx, error) {
 	return p.db.Begin(ctx)
 }
