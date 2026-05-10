@@ -13,6 +13,7 @@ type WorkflowExecution struct {
 }
 
 type Event struct {
+	ID         int64
 	WorkflowID string
 	RunID      string
 	EventID    int64
