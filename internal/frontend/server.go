@@ -14,7 +14,7 @@ import (
 
 const grpcAddr = ":7233"
 
-func Start(ctx context.Context) {
+func Start(ctx context.Context, handler *grpcHandlers.Server) {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
 	lis, err := net.Listen("tcp", grpcAddr)
@@ -24,7 +24,7 @@ func Start(ctx context.Context) {
 	}
 
 	srv := grpc.NewServer()
-	enginev1.RegisterEngineServiceServer(srv, grpcHandlers.New())
+	enginev1.RegisterEngineServiceServer(srv, handler)
 	reflection.Register(srv)
 
 	go func() {
