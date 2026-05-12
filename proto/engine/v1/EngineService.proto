@@ -8,6 +8,58 @@ service EngineService {
     rpc StartWorkflow(StartWorkflowRequest) returns (StartWorkflowResponse);
 }
 
-message StartWorkflowRequest {}
+message StartWorkflowRequest {
+    string workflow_id   = 1;
+    string workflow_type = 2;
+    string task_queue    = 3;
+    bytes  input         = 4;
+}
+message StartWorkflowResponse { string run_id = 1; }
 
-message StartWorkflowResponse {}
+message PollWorkflowTaskRequest  { string task_queue = 1; }
+message PollWorkflowTaskResponse {
+    int64  task_id       = 1;
+    string workflow_id   = 2;
+    string run_id        = 3;
+    string workflow_type = 4;
+    repeated HistoryEvent history = 5;
+}
+
+message PollActivityTaskRequest  { string task_queue = 1; }
+message PollActivityTaskResponse {
+    int64  task_id       = 1;
+    string workflow_id   = 2;
+    string run_id        = 3;
+    string activity_name = 4;
+    bytes  input         = 5;
+}
+
+message RespondWorkflowTaskCompletedRequest {
+    int64  task_id    = 1;
+    string workflow_id = 2;
+    string run_id     = 3;
+    repeated Command commands = 4;
+}
+message RespondWorkflowTaskCompletedResponse {}
+
+message RespondActivityTaskCompletedRequest {
+    int64  task_id    = 1;
+    string workflow_id = 2;
+    string run_id     = 3;
+    bytes  result     = 4;
+}
+message RespondActivityTaskCompletedResponse {}
+
+message HistoryEvent {
+    int64  event_id   = 1;
+    string event_type = 2;
+    bytes  data       = 3;
+}
+
+message Command {
+    string type          = 1;   // "ScheduleActivity" or "CompleteWorkflow"
+    string activity_name = 2;
+    string task_queue    = 3;
+    bytes  input         = 4;
+    bytes  data          = 5;
+}
