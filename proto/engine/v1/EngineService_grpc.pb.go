@@ -19,7 +19,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	EngineService_StartWorkflow_FullMethodName = "/engine.v1.EngineService/StartWorkflow"
+	EngineService_StartWorkflow_FullMethodName                = "/engine.v1.EngineService/StartWorkflow"
+	EngineService_PollWorkflowTask_FullMethodName             = "/engine.v1.EngineService/PollWorkflowTask"
+	EngineService_RespondWorkflowTaskCompleted_FullMethodName = "/engine.v1.EngineService/RespondWorkflowTaskCompleted"
+	EngineService_PollActivityTask_FullMethodName             = "/engine.v1.EngineService/PollActivityTask"
+	EngineService_RespondActivityTaskCompleted_FullMethodName = "/engine.v1.EngineService/RespondActivityTaskCompleted"
 )
 
 // EngineServiceClient is the client API for EngineService service.
@@ -27,6 +31,10 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type EngineServiceClient interface {
 	StartWorkflow(ctx context.Context, in *StartWorkflowRequest, opts ...grpc.CallOption) (*StartWorkflowResponse, error)
+	PollWorkflowTask(ctx context.Context, in *PollWorkflowTaskRequest, opts ...grpc.CallOption) (*PollWorkflowTaskResponse, error)
+	RespondWorkflowTaskCompleted(ctx context.Context, in *RespondWorkflowTaskCompletedRequest, opts ...grpc.CallOption) (*RespondWorkflowTaskCompletedResponse, error)
+	PollActivityTask(ctx context.Context, in *PollActivityTaskRequest, opts ...grpc.CallOption) (*PollActivityTaskResponse, error)
+	RespondActivityTaskCompleted(ctx context.Context, in *RespondActivityTaskCompletedRequest, opts ...grpc.CallOption) (*RespondActivityTaskCompletedResponse, error)
 }
 
 type engineServiceClient struct {
@@ -47,11 +55,55 @@ func (c *engineServiceClient) StartWorkflow(ctx context.Context, in *StartWorkfl
 	return out, nil
 }
 
+func (c *engineServiceClient) PollWorkflowTask(ctx context.Context, in *PollWorkflowTaskRequest, opts ...grpc.CallOption) (*PollWorkflowTaskResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PollWorkflowTaskResponse)
+	err := c.cc.Invoke(ctx, EngineService_PollWorkflowTask_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *engineServiceClient) RespondWorkflowTaskCompleted(ctx context.Context, in *RespondWorkflowTaskCompletedRequest, opts ...grpc.CallOption) (*RespondWorkflowTaskCompletedResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RespondWorkflowTaskCompletedResponse)
+	err := c.cc.Invoke(ctx, EngineService_RespondWorkflowTaskCompleted_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *engineServiceClient) PollActivityTask(ctx context.Context, in *PollActivityTaskRequest, opts ...grpc.CallOption) (*PollActivityTaskResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PollActivityTaskResponse)
+	err := c.cc.Invoke(ctx, EngineService_PollActivityTask_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *engineServiceClient) RespondActivityTaskCompleted(ctx context.Context, in *RespondActivityTaskCompletedRequest, opts ...grpc.CallOption) (*RespondActivityTaskCompletedResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RespondActivityTaskCompletedResponse)
+	err := c.cc.Invoke(ctx, EngineService_RespondActivityTaskCompleted_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // EngineServiceServer is the server API for EngineService service.
 // All implementations must embed UnimplementedEngineServiceServer
 // for forward compatibility.
 type EngineServiceServer interface {
 	StartWorkflow(context.Context, *StartWorkflowRequest) (*StartWorkflowResponse, error)
+	PollWorkflowTask(context.Context, *PollWorkflowTaskRequest) (*PollWorkflowTaskResponse, error)
+	RespondWorkflowTaskCompleted(context.Context, *RespondWorkflowTaskCompletedRequest) (*RespondWorkflowTaskCompletedResponse, error)
+	PollActivityTask(context.Context, *PollActivityTaskRequest) (*PollActivityTaskResponse, error)
+	RespondActivityTaskCompleted(context.Context, *RespondActivityTaskCompletedRequest) (*RespondActivityTaskCompletedResponse, error)
 	mustEmbedUnimplementedEngineServiceServer()
 }
 
@@ -64,6 +116,18 @@ type UnimplementedEngineServiceServer struct{}
 
 func (UnimplementedEngineServiceServer) StartWorkflow(context.Context, *StartWorkflowRequest) (*StartWorkflowResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method StartWorkflow not implemented")
+}
+func (UnimplementedEngineServiceServer) PollWorkflowTask(context.Context, *PollWorkflowTaskRequest) (*PollWorkflowTaskResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PollWorkflowTask not implemented")
+}
+func (UnimplementedEngineServiceServer) RespondWorkflowTaskCompleted(context.Context, *RespondWorkflowTaskCompletedRequest) (*RespondWorkflowTaskCompletedResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RespondWorkflowTaskCompleted not implemented")
+}
+func (UnimplementedEngineServiceServer) PollActivityTask(context.Context, *PollActivityTaskRequest) (*PollActivityTaskResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PollActivityTask not implemented")
+}
+func (UnimplementedEngineServiceServer) RespondActivityTaskCompleted(context.Context, *RespondActivityTaskCompletedRequest) (*RespondActivityTaskCompletedResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RespondActivityTaskCompleted not implemented")
 }
 func (UnimplementedEngineServiceServer) mustEmbedUnimplementedEngineServiceServer() {}
 func (UnimplementedEngineServiceServer) testEmbeddedByValue()                       {}
@@ -104,6 +168,78 @@ func _EngineService_StartWorkflow_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _EngineService_PollWorkflowTask_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PollWorkflowTaskRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EngineServiceServer).PollWorkflowTask(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EngineService_PollWorkflowTask_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EngineServiceServer).PollWorkflowTask(ctx, req.(*PollWorkflowTaskRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _EngineService_RespondWorkflowTaskCompleted_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RespondWorkflowTaskCompletedRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EngineServiceServer).RespondWorkflowTaskCompleted(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EngineService_RespondWorkflowTaskCompleted_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EngineServiceServer).RespondWorkflowTaskCompleted(ctx, req.(*RespondWorkflowTaskCompletedRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _EngineService_PollActivityTask_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PollActivityTaskRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EngineServiceServer).PollActivityTask(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EngineService_PollActivityTask_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EngineServiceServer).PollActivityTask(ctx, req.(*PollActivityTaskRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _EngineService_RespondActivityTaskCompleted_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RespondActivityTaskCompletedRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EngineServiceServer).RespondActivityTaskCompleted(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EngineService_RespondActivityTaskCompleted_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EngineServiceServer).RespondActivityTaskCompleted(ctx, req.(*RespondActivityTaskCompletedRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // EngineService_ServiceDesc is the grpc.ServiceDesc for EngineService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -114,6 +250,22 @@ var EngineService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "StartWorkflow",
 			Handler:    _EngineService_StartWorkflow_Handler,
+		},
+		{
+			MethodName: "PollWorkflowTask",
+			Handler:    _EngineService_PollWorkflowTask_Handler,
+		},
+		{
+			MethodName: "RespondWorkflowTaskCompleted",
+			Handler:    _EngineService_RespondWorkflowTaskCompleted_Handler,
+		},
+		{
+			MethodName: "PollActivityTask",
+			Handler:    _EngineService_PollActivityTask_Handler,
+		},
+		{
+			MethodName: "RespondActivityTaskCompleted",
+			Handler:    _EngineService_RespondActivityTaskCompleted_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

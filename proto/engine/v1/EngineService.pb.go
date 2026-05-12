@@ -776,9 +776,13 @@ const file_engine_v1_EngineService_proto_rawDesc = "" +
 	"\n" +
 	"task_queue\x18\x03 \x01(\tR\ttaskQueue\x12\x14\n" +
 	"\x05input\x18\x04 \x01(\fR\x05input\x12\x12\n" +
-	"\x04data\x18\x05 \x01(\fR\x04data2c\n" +
+	"\x04data\x18\x05 \x01(\fR\x04data2\x9f\x04\n" +
 	"\rEngineService\x12R\n" +
-	"\rStartWorkflow\x12\x1f.engine.v1.StartWorkflowRequest\x1a .engine.v1.StartWorkflowResponseB2Z0github.com/you/myengine/proto/engine/v1;enginev1b\x06proto3"
+	"\rStartWorkflow\x12\x1f.engine.v1.StartWorkflowRequest\x1a .engine.v1.StartWorkflowResponse\x12[\n" +
+	"\x10PollWorkflowTask\x12\".engine.v1.PollWorkflowTaskRequest\x1a#.engine.v1.PollWorkflowTaskResponse\x12\x7f\n" +
+	"\x1cRespondWorkflowTaskCompleted\x12..engine.v1.RespondWorkflowTaskCompletedRequest\x1a/.engine.v1.RespondWorkflowTaskCompletedResponse\x12[\n" +
+	"\x10PollActivityTask\x12\".engine.v1.PollActivityTaskRequest\x1a#.engine.v1.PollActivityTaskResponse\x12\x7f\n" +
+	"\x1cRespondActivityTaskCompleted\x12..engine.v1.RespondActivityTaskCompletedRequest\x1a/.engine.v1.RespondActivityTaskCompletedResponseB2Z0github.com/you/myengine/proto/engine/v1;enginev1b\x06proto3"
 
 var (
 	file_engine_v1_EngineService_proto_rawDescOnce sync.Once
@@ -811,9 +815,17 @@ var file_engine_v1_EngineService_proto_depIdxs = []int32{
 	10, // 0: engine.v1.PollWorkflowTaskResponse.history:type_name -> engine.v1.HistoryEvent
 	11, // 1: engine.v1.RespondWorkflowTaskCompletedRequest.commands:type_name -> engine.v1.Command
 	0,  // 2: engine.v1.EngineService.StartWorkflow:input_type -> engine.v1.StartWorkflowRequest
-	1,  // 3: engine.v1.EngineService.StartWorkflow:output_type -> engine.v1.StartWorkflowResponse
-	3,  // [3:4] is the sub-list for method output_type
-	2,  // [2:3] is the sub-list for method input_type
+	2,  // 3: engine.v1.EngineService.PollWorkflowTask:input_type -> engine.v1.PollWorkflowTaskRequest
+	6,  // 4: engine.v1.EngineService.RespondWorkflowTaskCompleted:input_type -> engine.v1.RespondWorkflowTaskCompletedRequest
+	4,  // 5: engine.v1.EngineService.PollActivityTask:input_type -> engine.v1.PollActivityTaskRequest
+	8,  // 6: engine.v1.EngineService.RespondActivityTaskCompleted:input_type -> engine.v1.RespondActivityTaskCompletedRequest
+	1,  // 7: engine.v1.EngineService.StartWorkflow:output_type -> engine.v1.StartWorkflowResponse
+	3,  // 8: engine.v1.EngineService.PollWorkflowTask:output_type -> engine.v1.PollWorkflowTaskResponse
+	7,  // 9: engine.v1.EngineService.RespondWorkflowTaskCompleted:output_type -> engine.v1.RespondWorkflowTaskCompletedResponse
+	5,  // 10: engine.v1.EngineService.PollActivityTask:output_type -> engine.v1.PollActivityTaskResponse
+	9,  // 11: engine.v1.EngineService.RespondActivityTaskCompleted:output_type -> engine.v1.RespondActivityTaskCompletedResponse
+	7,  // [7:12] is the sub-list for method output_type
+	2,  // [2:7] is the sub-list for method input_type
 	2,  // [2:2] is the sub-list for extension type_name
 	2,  // [2:2] is the sub-list for extension extendee
 	0,  // [0:2] is the sub-list for field type_name

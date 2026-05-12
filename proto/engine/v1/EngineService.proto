@@ -6,6 +6,10 @@ option go_package = "github.com/you/myengine/proto/engine/v1;enginev1";
 
 service EngineService {
     rpc StartWorkflow(StartWorkflowRequest) returns (StartWorkflowResponse);
+    rpc PollWorkflowTask(PollWorkflowTaskRequest) returns (PollWorkflowTaskResponse);
+    rpc RespondWorkflowTaskCompleted(RespondWorkflowTaskCompletedRequest) returns (RespondWorkflowTaskCompletedResponse);
+    rpc PollActivityTask(PollActivityTaskRequest) returns (PollActivityTaskResponse);
+    rpc RespondActivityTaskCompleted(RespondActivityTaskCompletedRequest) returns (RespondActivityTaskCompletedResponse);
 }
 
 message StartWorkflowRequest {
