@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/qppffod/myTemp/internal/frontend"
 	grpcHandlers "github.com/qppffod/myTemp/internal/frontend/grpc"
+	"github.com/qppffod/myTemp/internal/history"
 	"github.com/qppffod/myTemp/internal/persistence"
 )
 
@@ -36,7 +37,10 @@ func main() {
 		log.Fatalf("ping: %v", err)
 	}
 
-	handler := grpcHandlers.New()
+	p := persistence.New(pool)
+	h := history.New(p)
+
+	handler := grpcHandlers.New(p, h)
 
 	frontend.Start(ctx, handler)
 }
