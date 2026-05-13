@@ -28,3 +28,35 @@ func (s *Handler) StartWorkflow(ctx context.Context, req *enginev1.StartWorkflow
 	}
 	return &enginev1.StartWorkflowResponse{RunId: runID}, nil
 }
+
+func (h *Handler) PollWorkflowTask(ctx context.Context, req *enginev1.PollWorkflowTaskRequest) (*enginev1.PollWorkflowTaskResponse, error) {
+	task, err := h.persistence.PollTask(ctx, req.TaskQueue, "workflow")
+	if err != nil || task == nil {
+		return nil, err
+	}
+
+	events, err := h.persistence.GetEvents(ctx, task.WorkflowID, task.RunID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &enginev1.PollWorkflowTaskResponse{
+		TaskId:       task.ID,
+		WorkflowId:   task.WorkflowID,
+		RunId:        task.RunID,
+		WorkflowType: task.WorkflowType,
+		History:      marshalEvents(events),
+	}, nil
+}
+
+func marshalEvents(events []persistence.Event) []*enginev1.HistoryEvent {
+	result := make([]*enginev1.HistoryEvent, len(events))
+	for i, e := range events {
+		result[i] = &enginev1.HistoryEvent{
+			EventId:   e.EventID,
+			EventType: e.EventType,
+			Data:      e.Data,
+		}
+	}
+	return result
+}
