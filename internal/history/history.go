@@ -50,6 +50,7 @@ func (h *History) StartWorkflow(ctx context.Context, workflowID, workflowType, t
 	if err := h.p.InsertTask(ctx, tx, persistence.Task{
 		TaskQueue:        taskQueue,
 		TaskType:         "workflow",
+		WorkflowType:     workflowType,
 		WorkflowID:       workflowID,
 		RunID:            runID,
 		ScheduledEventID: 1,

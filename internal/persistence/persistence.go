@@ -114,11 +114,11 @@ func (p *Persistence) GetEvents(ctx context.Context, workflowID, runID string) (
 
 func (p *Persistence) InsertTask(ctx context.Context, tx pgx.Tx, t Task) error {
 	_, err := tx.Exec(ctx,
-		`INSERT INTO tasks (task_queue, task_type, workflow_id, run_id,
+		`INSERT INTO tasks (task_queue, task_type, workflow_type, workflow_id, run_id,
 							scheduled_event_id, input, activity_name,
 							visibility_time, lease_owner, lease_expires_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-		t.TaskQueue, t.TaskType, t.WorkflowID, t.RunID, t.ScheduledEventID,
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+		t.TaskQueue, t.TaskType, t.WorkflowType, t.WorkflowID, t.RunID, t.ScheduledEventID,
 		t.Input, t.ActivityName, t.VisibilityTime, t.LeaseOwner, t.LeaseExpiresAt,
 	)
 	return err
@@ -126,7 +126,7 @@ func (p *Persistence) InsertTask(ctx context.Context, tx pgx.Tx, t Task) error {
 
 func (p *Persistence) PollTask(ctx context.Context, queue, taskType string) (*Task, error) {
 	row := p.db.QueryRow(ctx,
-		`SELECT id, task_queue, task_type, workflow_id, run_id,
+		`SELECT id, task_queue, task_type, workflow_type, workflow_id, run_id,
 				scheduled_event_id, input, activity_name,
 				visibility_time, lease_owner, lease_expires_at
 		 FROM tasks
@@ -145,6 +145,7 @@ func (p *Persistence) PollTask(ctx context.Context, queue, taskType string) (*Ta
 		&t.ID,
 		&t.TaskQueue,
 		&t.TaskType,
+		&t.WorkflowType,
 		&t.WorkflowID,
 		&t.RunID,
 		&t.ScheduledEventID,
