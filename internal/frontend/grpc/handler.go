@@ -22,5 +22,9 @@ func New(p *persistence.Persistence, h *history.History) *Server {
 }
 
 func (s *Server) StartWorkflow(ctx context.Context, req *enginev1.StartWorkflowRequest) (*enginev1.StartWorkflowResponse, error) {
-	return &enginev1.StartWorkflowResponse{}, nil
+	runID, err := s.history.StartWorkflow(ctx, req.WorkflowId, req.WorkflowType, req.TaskQueue, req.Input)
+	if err != nil {
+		return nil, err
+	}
+	return &enginev1.StartWorkflowResponse{RunId: runID}, nil
 }
