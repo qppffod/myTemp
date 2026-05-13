@@ -14,7 +14,7 @@ import (
 
 const grpcAddr = ":7233"
 
-func Start(ctx context.Context, handler *grpcHandlers.Server) {
+func Start(ctx context.Context, handler *grpcHandlers.Handler) {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
 	lis, err := net.Listen("tcp", grpcAddr)
