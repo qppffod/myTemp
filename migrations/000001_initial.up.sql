@@ -25,6 +25,7 @@ CREATE TABLE tasks (
     id              BIGSERIAL PRIMARY KEY,
     task_queue      TEXT NOT NULL,
     task_type       TEXT NOT NULL,           
+    workflow_type   TEXT NOT NULL,
     workflow_id     TEXT NOT NULL,
     run_id          UUID NOT NULL,
     scheduled_event_id BIGINT NOT NULL,

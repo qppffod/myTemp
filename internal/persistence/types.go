@@ -26,6 +26,7 @@ type Task struct {
 	ID               int64
 	TaskQueue        string
 	TaskType         string
+	WorkflowType     string
 	WorkflowID       string
 	RunID            string
 	ScheduledEventID int64
