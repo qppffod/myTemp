@@ -21,6 +21,10 @@ func New(ctx context.Context, history []*pb.HistoryEvent) *Context {
 	}
 }
 
+func (c *Context) Commands() []*pb.Command {
+	return c.commands
+}
+
 func ExecuteActivity(ctx *Context, activityName string, input any) []byte {
 	for i := ctx.eventIdx; i < len(ctx.history); i++ {
 		event := ctx.history[i]
