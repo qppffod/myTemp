@@ -11,7 +11,7 @@ import (
 
 type Client struct {
 	conn   *grpc.ClientConn
-	client pb.EngineServiceClient
+	engine pb.EngineServiceClient
 }
 
 func NewClient(addr string) (*Client, error) {
@@ -24,7 +24,7 @@ func NewClient(addr string) (*Client, error) {
 
 	return &Client{
 		conn:   conn,
-		client: client,
+		engine: client,
 	}, nil
 }
 
@@ -33,5 +33,5 @@ func (c *Client) Close() {
 }
 
 func (c *Client) StartNewWorkflow(ctx context.Context, workflowType, taskQueue string, data any) {
-	c.client.StartWorkflow(ctx, &pb.StartWorkflowRequest{})
+	c.engine.StartWorkflow(ctx, &pb.StartWorkflowRequest{})
 }
