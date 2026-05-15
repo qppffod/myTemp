@@ -69,6 +69,11 @@ func (h *Handler) PollActivityTask(ctx context.Context, req *pb.PollActivityTask
 	}, nil
 }
 
+func (h *Handler) RespondActivityTaskCompleted(ctx context.Context, req *pb.RespondActivityTaskCompletedRequest) (*pb.RespondActivityTaskCompletedResponse, error) {
+	err := h.history.CompleteActivityTask(ctx, req.TaskId, req.WorkflowId, req.RunId, req.Result)
+	return &pb.RespondActivityTaskCompletedResponse{}, err
+}
+
 func unmarshalCommands(commands []*pb.Command) []history.Command {
 	result := make([]history.Command, len(commands))
 	for i, c := range commands {
