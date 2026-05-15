@@ -5,11 +5,11 @@ import (
 
 	"github.com/qppffod/myTemp/internal/history"
 	"github.com/qppffod/myTemp/internal/persistence"
-	enginev1 "github.com/qppffod/myTemp/proto/engine/v1"
+	pb "github.com/qppffod/myTemp/proto/engine/v1"
 )
 
 type Handler struct {
-	enginev1.UnimplementedEngineServiceServer
+	pb.UnimplementedEngineServiceServer
 	persistence *persistence.Persistence
 	history     *history.History
 }
@@ -21,15 +21,15 @@ func New(p *persistence.Persistence, h *history.History) *Handler {
 	}
 }
 
-func (s *Handler) StartWorkflow(ctx context.Context, req *enginev1.StartWorkflowRequest) (*enginev1.StartWorkflowResponse, error) {
+func (s *Handler) StartWorkflow(ctx context.Context, req *pb.StartWorkflowRequest) (*pb.StartWorkflowResponse, error) {
 	runID, err := s.history.StartWorkflow(ctx, req.WorkflowId, req.WorkflowType, req.TaskQueue, req.Input)
 	if err != nil {
 		return nil, err
 	}
-	return &enginev1.StartWorkflowResponse{RunId: runID}, nil
+	return &pb.StartWorkflowResponse{RunId: runID}, nil
 }
 
-func (h *Handler) PollWorkflowTask(ctx context.Context, req *enginev1.PollWorkflowTaskRequest) (*enginev1.PollWorkflowTaskResponse, error) {
+func (h *Handler) PollWorkflowTask(ctx context.Context, req *pb.PollWorkflowTaskRequest) (*pb.PollWorkflowTaskResponse, error) {
 	task, err := h.persistence.PollTask(ctx, req.TaskQueue, "workflow")
 	if err != nil || task == nil {
 		return nil, err
@@ -40,7 +40,7 @@ func (h *Handler) PollWorkflowTask(ctx context.Context, req *enginev1.PollWorkfl
 		return nil, err
 	}
 
-	return &enginev1.PollWorkflowTaskResponse{
+	return &pb.PollWorkflowTaskResponse{
 		TaskId:       task.ID,
 		WorkflowId:   task.WorkflowID,
 		RunId:        task.RunID,
@@ -49,10 +49,10 @@ func (h *Handler) PollWorkflowTask(ctx context.Context, req *enginev1.PollWorkfl
 	}, nil
 }
 
-func marshalEvents(events []persistence.Event) []*enginev1.HistoryEvent {
-	result := make([]*enginev1.HistoryEvent, len(events))
+func marshalEvents(events []persistence.Event) []*pb.HistoryEvent {
+	result := make([]*pb.HistoryEvent, len(events))
 	for i, e := range events {
-		result[i] = &enginev1.HistoryEvent{
+		result[i] = &pb.HistoryEvent{
 			EventId:   e.EventID,
 			EventType: e.EventType,
 			Data:      e.Data,
