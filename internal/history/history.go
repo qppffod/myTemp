@@ -117,3 +117,46 @@ func (h *History) CompleteWorkflowTask(ctx context.Context, taskID int64, workfl
 
 	return tx.Commit(ctx)
 }
+
+func (h *History) CompleteActivityTask(ctx context.Context, taskID int64, workflowID, runID string, result []byte) error {
+	tx, err := h.p.BeginTx(ctx)
+	if err != nil {
+		return fmt.Errorf("begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	events, err := h.p.GetEvents(ctx, workflowID, runID)
+	if err != nil {
+		return fmt.Errorf("get events: %w", err)
+	}
+	nextEventID := int64(len(events)) + 1
+
+	if err := h.p.InsertEvent(ctx, tx, persistence.Event{
+		WorkflowID: workflowID,
+		RunID:      runID,
+		EventID:    nextEventID,
+		EventType:  "ActivityCompleted",
+		Data:       result,
+	}); err != nil {
+		return fmt.Errorf("insert complete activity event: %w", err)
+	}
+
+	if err := h.p.CompleteTask(ctx, tx, taskID); err != nil {
+		return fmt.Errorf("complete activity task: %w", err)
+	}
+
+	task, err := h.p.GetWorkflowExecution(ctx, workflowID, runID)
+	if err != nil {
+		return fmt.Errorf("GetWorkflowExecution: %w", err)
+	}
+	if err := h.p.InsertTask(ctx, tx, persistence.Task{
+		TaskQueue:    task.TaskQueue,
+		TaskType:     "workflow",
+		WorkflowType: task.WorkflowID,
+		RunID:        task.RunID,
+	}); err != nil {
+		return fmt.Errorf("InsertTask: %w", err)
+	}
+
+	return tx.Commit(ctx)
+}
