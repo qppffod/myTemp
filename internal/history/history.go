@@ -64,3 +64,56 @@ func (h *History) StartWorkflow(ctx context.Context, workflowID, workflowType, t
 	}
 	return runID, nil
 }
+
+func (h *History) CompleteWorkflowTask(ctx context.Context, taskID int64, workflowID, runID string, commands []Command) error {
+	tx, err := h.p.BeginTx(ctx)
+	if err != nil {
+		return fmt.Errorf("begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	events, err := h.p.GetEvents(ctx, workflowID, runID)
+	if err != nil {
+		return fmt.Errorf("get events: %w", err)
+	}
+	nextEventID := int64(len(events)) + 1
+
+	for _, cmd := range commands {
+		switch cmd.Type {
+		case "ScheduleActivity":
+
+			if err := h.p.InsertEvent(ctx, tx, persistence.Event{
+				WorkflowID: workflowID,
+				RunID:      runID,
+				EventID:    nextEventID,
+				EventType:  "ActivityScheduled",
+				Data:       cmd.Input,
+			}); err != nil {
+				return err
+			}
+
+			if err := h.p.InsertTask(ctx, tx, persistence.Task{
+				TaskQueue:    cmd.TaskQueue,
+				TaskType:     "activity",
+				WorkflowID:   workflowID,
+				RunID:        runID,
+				ActivityName: cmd.ActivityName,
+				Input:        cmd.Input,
+			}); err != nil {
+				return err
+			}
+
+		case "CompleteWorkflow":
+			err := h.p.UpdateWorkflowStatus(ctx, tx, workflowID, runID, "Completed")
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	if err := h.p.CompleteTask(ctx, tx, taskID); err != nil {
+		return fmt.Errorf("complete workflow task: %w", err)
+	}
+
+	return tx.Commit(ctx)
+}
