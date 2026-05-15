@@ -1,9 +1,15 @@
 package sdk
 
 import (
+	"context"
 	"reflect"
 	"runtime"
 	"strings"
+	"sync"
+	"time"
+
+	pb "github.com/qppffod/myTemp/proto/engine/v1"
+	"github.com/qppffod/myTemp/sdk/workflow"
 )
 
 type Worker struct {
@@ -53,4 +59,94 @@ func (w *Worker) RegisterActivity(fn interface{}) {
 	name := words[len(words)-1]
 
 	w.activityFunctions[name] = fnValue
+}
+
+func (w *Worker) Run(ctx context.Context) {
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		w.pollWorkflowTasks(ctx)
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		w.pollActivityTasks(ctx)
+	}()
+
+	wg.Wait()
+}
+
+func (w *Worker) pollWorkflowTasks(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			resp, err := w.client.engine.PollWorkflowTask(ctx, &pb.PollWorkflowTaskRequest{
+				TaskQueue: w.queue,
+			})
+			if err != nil || resp.TaskId == 0 {
+				time.Sleep(time.Second)
+				continue
+			}
+			w.executeWorkflowTask(ctx, resp)
+		}
+	}
+}
+
+func (w *Worker) executeWorkflowTask(ctx context.Context, task *pb.PollWorkflowTaskResponse) {
+	fn, ok := w.workflowFunctions[task.WorkflowType]
+	if !ok {
+		return
+	}
+
+	wfCtx := workflow.New(ctx, task.History)
+
+	fn.Call([]reflect.Value{reflect.ValueOf(wfCtx)})
+
+	commands := wfCtx.Commands()
+
+	w.client.engine.RespondWorkflowTaskCompleted(ctx, &pb.RespondWorkflowTaskCompletedRequest{
+		TaskId:     task.TaskId,
+		WorkflowId: task.WorkflowId,
+		RunId:      task.RunId,
+		Commands:   commands,
+	})
+}
+
+func (w *Worker) pollActivityTasks(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			resp, err := w.client.engine.PollActivityTask(ctx, &pb.PollActivityTaskRequest{
+				TaskQueue: w.queue,
+			})
+			if err != nil || resp.TaskId == 0 {
+				time.Sleep(time.Second)
+				continue
+			}
+			w.executeActivityTask(ctx, resp)
+		}
+	}
+}
+
+func (w *Worker) executeActivityTask(ctx context.Context, task *pb.PollActivityTaskResponse) {
+	fn, ok := w.activityFunctions[task.ActivityName]
+	if !ok {
+		return
+	}
+
+	result := fn.Call([]reflect.Value{reflect.ValueOf(ctx), reflect.ValueOf(task.Input)})
+
+	w.client.engine.RespondActivityTaskCompleted(ctx, &pb.RespondActivityTaskCompletedRequest{
+		TaskId:     task.TaskId,
+		WorkflowId: task.WorkflowId,
+		RunId:      task.RunId,
+		Result:     result[0].Bytes(),
+	})
 }
