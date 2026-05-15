@@ -54,6 +54,21 @@ func (h *Handler) RespondWorkflowTaskCompleted(ctx context.Context, req *pb.Resp
 	return &pb.RespondWorkflowTaskCompletedResponse{}, err
 }
 
+func (h *Handler) PollActivityTask(ctx context.Context, req *pb.PollActivityTaskRequest) (*pb.PollActivityTaskResponse, error) {
+	task, err := h.persistence.PollTask(ctx, req.TaskQueue, "activity")
+	if err != nil || task == nil {
+		return &pb.PollActivityTaskResponse{}, err
+	}
+
+	return &pb.PollActivityTaskResponse{
+		TaskId:       task.ID,
+		WorkflowId:   task.WorkflowID,
+		RunId:        task.RunID,
+		ActivityName: task.ActivityName,
+		Input:        task.Input,
+	}, nil
+}
+
 func unmarshalCommands(commands []*pb.Command) []history.Command {
 	result := make([]history.Command, len(commands))
 	for i, c := range commands {
