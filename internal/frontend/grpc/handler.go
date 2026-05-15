@@ -49,6 +49,24 @@ func (h *Handler) PollWorkflowTask(ctx context.Context, req *pb.PollWorkflowTask
 	}, nil
 }
 
+func (h *Handler) RespondWorkflowTaskCompleted(ctx context.Context, req *pb.RespondWorkflowTaskCompletedRequest) (*pb.RespondWorkflowTaskCompletedResponse, error) {
+	err := h.history.CompleteWorkflowTask(ctx, req.TaskId, req.WorkflowId, req.RunId, unmarshalCommands(req.Commands))
+	return &pb.RespondWorkflowTaskCompletedResponse{}, err
+}
+
+func unmarshalCommands(commands []*pb.Command) []history.Command {
+	result := make([]history.Command, len(commands))
+	for i, c := range commands {
+		result[i] = history.Command{
+			Type:         c.Type,
+			ActivityName: c.ActivityName,
+			TaskQueue:    c.TaskQueue,
+			Input:        c.Input,
+		}
+	}
+	return result
+}
+
 func marshalEvents(events []persistence.Event) []*pb.HistoryEvent {
 	result := make([]*pb.HistoryEvent, len(events))
 	for i, e := range events {
