@@ -25,6 +25,13 @@ func (c *Context) Commands() []*pb.Command {
 	return c.commands
 }
 
+func CompleteWorkflow(ctx *Context, result []byte) {
+	ctx.commands = append(ctx.commands, &pb.Command{
+		Type:  "CompleteWorkflow",
+		Input: result,
+	})
+}
+
 func ExecuteActivity(ctx *Context, activityName string, input any) []byte {
 	for i := ctx.eventIdx; i < len(ctx.history); i++ {
 		event := ctx.history[i]
