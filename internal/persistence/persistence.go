@@ -56,7 +56,7 @@ func (p *Persistence) UpdateWorkflowStatus(ctx context.Context, tx pgx.Tx, workf
 	_, err := tx.Exec(ctx,
 		`UPDATE workflow_executions
 		 SET status = $1,
-		 	closed_at = CASE WHEN $1 IN ('Completed', 'Failed', "Canceled') THEN now() ELSE closed_at END
+		 	closed_at = CASE WHEN $1 IN ('Completed', 'Failed', 'Canceled') THEN now() ELSE closed_at END
 		 WHERE workflow_id = $2 AND run_id = $3`,
 		status, workflowID, runID,
 	)
@@ -178,7 +178,7 @@ func (p *Persistence) CompleteTask(ctx context.Context, tx pgx.Tx, taskID int64)
 func (p *Persistence) LeaseTask(ctx context.Context, taskID int64, leaseOwner string) error {
 	_, err := p.db.Exec(ctx,
 		`UPDATE tasks
-		 SET lease_owner = $1
+		 SET lease_owner = $1,
 		 	lease_expires_at = now() + interval '30 seconds'
 		 WHERE id = $2`,
 		leaseOwner, taskID,

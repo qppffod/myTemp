@@ -32,7 +32,7 @@ func (s *Handler) StartWorkflow(ctx context.Context, req *pb.StartWorkflowReques
 func (h *Handler) PollWorkflowTask(ctx context.Context, req *pb.PollWorkflowTaskRequest) (*pb.PollWorkflowTaskResponse, error) {
 	task, err := h.persistence.PollTask(ctx, req.TaskQueue, "workflow")
 	if err != nil || task == nil {
-		return nil, err
+		return &pb.PollWorkflowTaskResponse{}, err
 	}
 
 	events, err := h.persistence.GetEvents(ctx, task.WorkflowID, task.RunID)

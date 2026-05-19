@@ -72,6 +72,11 @@ func (h *History) CompleteWorkflowTask(ctx context.Context, taskID int64, workfl
 	}
 	defer tx.Rollback(ctx)
 
+	exec, err := h.p.GetWorkflowExecution(ctx, workflowID, runID)
+	if err != nil {
+		return fmt.Errorf("get workflow execution: %w", err)
+	}
+
 	events, err := h.p.GetEvents(ctx, workflowID, runID)
 	if err != nil {
 		return fmt.Errorf("get events: %w", err)
@@ -93,15 +98,18 @@ func (h *History) CompleteWorkflowTask(ctx context.Context, taskID int64, workfl
 			}
 
 			if err := h.p.InsertTask(ctx, tx, persistence.Task{
-				TaskQueue:    cmd.TaskQueue,
-				TaskType:     "activity",
-				WorkflowID:   workflowID,
-				RunID:        runID,
-				ActivityName: cmd.ActivityName,
-				Input:        cmd.Input,
+				TaskQueue:        cmd.TaskQueue,
+				TaskType:         "activity",
+				WorkflowType:     exec.WorkflowType,
+				WorkflowID:       workflowID,
+				RunID:            runID,
+				ScheduledEventID: nextEventID,
+				ActivityName:     cmd.ActivityName,
+				Input:            cmd.Input,
 			}); err != nil {
 				return err
 			}
+			nextEventID++
 
 		case "CompleteWorkflow":
 			err := h.p.UpdateWorkflowStatus(ctx, tx, workflowID, runID, "Completed")
@@ -145,15 +153,17 @@ func (h *History) CompleteActivityTask(ctx context.Context, taskID int64, workfl
 		return fmt.Errorf("complete activity task: %w", err)
 	}
 
-	task, err := h.p.GetWorkflowExecution(ctx, workflowID, runID)
+	exec, err := h.p.GetWorkflowExecution(ctx, workflowID, runID)
 	if err != nil {
 		return fmt.Errorf("GetWorkflowExecution: %w", err)
 	}
 	if err := h.p.InsertTask(ctx, tx, persistence.Task{
-		TaskQueue:    task.TaskQueue,
-		TaskType:     "workflow",
-		WorkflowType: task.WorkflowID,
-		RunID:        task.RunID,
+		TaskQueue:        exec.TaskQueue,
+		TaskType:         "workflow",
+		WorkflowType:     exec.WorkflowType,
+		WorkflowID:       exec.WorkflowID,
+		RunID:            exec.RunID,
+		ScheduledEventID: nextEventID,
 	}); err != nil {
 		return fmt.Errorf("InsertTask: %w", err)
 	}

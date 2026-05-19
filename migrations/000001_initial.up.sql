@@ -15,9 +15,9 @@ CREATE TABLE events (
     id              BIGSERIAL PRIMARY KEY,
     workflow_id     TEXT NOT NULL,
     run_id          UUID NOT NULL,
-    event_id        BIGINT NOT NULL,         
+    event_id        BIGINT NOT NULL,
     event_type      TEXT NOT NULL,
-    data            JSONB NOT NULL,
+    data            BYTEA NOT NULL,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -29,7 +29,7 @@ CREATE TABLE tasks (
     workflow_id     TEXT NOT NULL,
     run_id          UUID NOT NULL,
     scheduled_event_id BIGINT NOT NULL,
-    input           JSONB,
+    input           BYTEA,
     activity_name   TEXT,                    
     visibility_time TIMESTAMPTZ NOT NULL DEFAULT now(),
     lease_owner     TEXT,
