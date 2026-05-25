@@ -38,11 +38,12 @@ func (h *History) StartWorkflow(ctx context.Context, workflowID, workflowType, t
 	}
 
 	if err := h.p.InsertEvent(ctx, tx, persistence.Event{
-		WorkflowID: workflowID,
-		RunID:      runID,
-		EventID:    1,
-		EventType:  "WorkflowStarted",
-		Data:       input,
+		WorkflowID:   workflowID,
+		RunID:        runID,
+		EventID:      1,
+		EventType:    "WorkflowStarted",
+		ActivityName: "",
+		Data:         input,
 	}); err != nil {
 		return "", fmt.Errorf("insert workflow started event: %w", err)
 	}
@@ -88,11 +89,12 @@ func (h *History) CompleteWorkflowTask(ctx context.Context, taskID int64, workfl
 		case "ScheduleActivity":
 
 			if err := h.p.InsertEvent(ctx, tx, persistence.Event{
-				WorkflowID: workflowID,
-				RunID:      runID,
-				EventID:    nextEventID,
-				EventType:  "ActivityScheduled",
-				Data:       cmd.Input,
+				WorkflowID:   workflowID,
+				RunID:        runID,
+				EventID:      nextEventID,
+				EventType:    "ActivityScheduled",
+				ActivityName: cmd.ActivityName,
+				Data:         cmd.Input,
 			}); err != nil {
 				return err
 			}
@@ -133,6 +135,11 @@ func (h *History) CompleteActivityTask(ctx context.Context, taskID int64, workfl
 	}
 	defer tx.Rollback(ctx)
 
+	task, err := h.p.GetTask(ctx, taskID)
+	if err != nil {
+		return fmt.Errorf("GetTask: %w", err)
+	}
+
 	events, err := h.p.GetEvents(ctx, workflowID, runID)
 	if err != nil {
 		return fmt.Errorf("get events: %w", err)
@@ -140,11 +147,12 @@ func (h *History) CompleteActivityTask(ctx context.Context, taskID int64, workfl
 	nextEventID := int64(len(events)) + 1
 
 	if err := h.p.InsertEvent(ctx, tx, persistence.Event{
-		WorkflowID: workflowID,
-		RunID:      runID,
-		EventID:    nextEventID,
-		EventType:  "ActivityCompleted",
-		Data:       result,
+		WorkflowID:   workflowID,
+		RunID:        runID,
+		EventID:      nextEventID,
+		EventType:    "ActivityCompleted",
+		ActivityName: task.ActivityName,
+		Data:         result,
 	}); err != nil {
 		return fmt.Errorf("insert complete activity event: %w", err)
 	}

@@ -13,13 +13,14 @@ type WorkflowExecution struct {
 }
 
 type Event struct {
-	ID         int64
-	WorkflowID string
-	RunID      string
-	EventID    int64
-	EventType  string
-	Data       []byte
-	CreatedAt  time.Time
+	ID           int64
+	WorkflowID   string
+	RunID        string
+	EventID      int64
+	EventType    string
+	ActivityName string
+	Data         []byte
+	CreatedAt    time.Time
 }
 
 type Task struct {

@@ -17,6 +17,7 @@ CREATE TABLE events (
     run_id          UUID NOT NULL,
     event_id        BIGINT NOT NULL,
     event_type      TEXT NOT NULL,
+    activity_name   TEXT NOT NULL DEFAULT '',
     data            BYTEA NOT NULL,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );

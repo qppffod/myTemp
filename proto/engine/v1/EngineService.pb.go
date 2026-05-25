@@ -585,7 +585,8 @@ type HistoryEvent struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	EventId       int64                  `protobuf:"varint,1,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
 	EventType     string                 `protobuf:"bytes,2,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
-	Data          []byte                 `protobuf:"bytes,3,opt,name=data,proto3" json:"data,omitempty"`
+	ActivityName  string                 `protobuf:"bytes,3,opt,name=activity_name,json=activityName,proto3" json:"activity_name,omitempty"`
+	Data          []byte                 `protobuf:"bytes,4,opt,name=data,proto3" json:"data,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -630,6 +631,13 @@ func (x *HistoryEvent) GetEventId() int64 {
 func (x *HistoryEvent) GetEventType() string {
 	if x != nil {
 		return x.EventType
+	}
+	return ""
+}
+
+func (x *HistoryEvent) GetActivityName() string {
+	if x != nil {
+		return x.ActivityName
 	}
 	return ""
 }
@@ -764,12 +772,13 @@ const file_engine_v1_EngineService_proto_rawDesc = "" +
 	"workflowId\x12\x15\n" +
 	"\x06run_id\x18\x03 \x01(\tR\x05runId\x12\x16\n" +
 	"\x06result\x18\x04 \x01(\fR\x06result\"&\n" +
-	"$RespondActivityTaskCompletedResponse\"\\\n" +
+	"$RespondActivityTaskCompletedResponse\"\x81\x01\n" +
 	"\fHistoryEvent\x12\x19\n" +
 	"\bevent_id\x18\x01 \x01(\x03R\aeventId\x12\x1d\n" +
 	"\n" +
-	"event_type\x18\x02 \x01(\tR\teventType\x12\x12\n" +
-	"\x04data\x18\x03 \x01(\fR\x04data\"\x8b\x01\n" +
+	"event_type\x18\x02 \x01(\tR\teventType\x12#\n" +
+	"\ractivity_name\x18\x03 \x01(\tR\factivityName\x12\x12\n" +
+	"\x04data\x18\x04 \x01(\fR\x04data\"\x8b\x01\n" +
 	"\aCommand\x12\x12\n" +
 	"\x04type\x18\x01 \x01(\tR\x04type\x12#\n" +
 	"\ractivity_name\x18\x02 \x01(\tR\factivityName\x12\x1d\n" +

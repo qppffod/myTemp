@@ -91,9 +91,10 @@ func marshalEvents(events []persistence.Event) []*pb.HistoryEvent {
 	result := make([]*pb.HistoryEvent, len(events))
 	for i, e := range events {
 		result[i] = &pb.HistoryEvent{
-			EventId:   e.EventID,
-			EventType: e.EventType,
-			Data:      e.Data,
+			EventId:      e.EventID,
+			EventType:    e.EventType,
+			ActivityName: e.ActivityName,
+			Data:         e.Data,
 		}
 	}
 	return result

@@ -57,7 +57,8 @@ message RespondActivityTaskCompletedResponse {}
 message HistoryEvent {
     int64  event_id   = 1;
     string event_type = 2;
-    bytes  data       = 3;
+    string activity_name = 3;
+    bytes  data       = 4;
 }
 
 message Command {

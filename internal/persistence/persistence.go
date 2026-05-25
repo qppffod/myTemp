@@ -65,16 +65,16 @@ func (p *Persistence) UpdateWorkflowStatus(ctx context.Context, tx pgx.Tx, workf
 
 func (p *Persistence) InsertEvent(ctx context.Context, tx pgx.Tx, e Event) error {
 	_, err := tx.Exec(ctx,
-		`INSERT INTO events (workflow_id, run_id, event_id, event_type, data)
-		 VALUES ($1, $2, $3, $4, $5)`,
-		e.WorkflowID, e.RunID, e.EventID, e.EventType, e.Data,
+		`INSERT INTO events (workflow_id, run_id, event_id, event_type, activity_name, data)
+		 VALUES ($1, $2, $3, $4, $5, $6)`,
+		e.WorkflowID, e.RunID, e.EventID, e.EventType, e.ActivityName, e.Data,
 	)
 	return err
 }
 
 func (p *Persistence) GetEvents(ctx context.Context, workflowID, runID string) ([]Event, error) {
 	rows, err := p.db.Query(ctx,
-		`SELECT id, workflow_id, run_id, event_id, event_type, data, created_at
+		`SELECT id, workflow_id, run_id, event_id, event_type, activity_name, data, created_at
 		 FROM events
 		 WHERE workflow_id = $1 AND run_id = $2
 		 ORDER BY event_id`,
@@ -96,6 +96,7 @@ func (p *Persistence) GetEvents(ctx context.Context, workflowID, runID string) (
 			&e.RunID,
 			&e.EventID,
 			&e.EventType,
+			&e.ActivityName,
 			&e.Data,
 			&e.CreatedAt,
 		); err != nil {
@@ -157,6 +158,42 @@ func (p *Persistence) PollTask(ctx context.Context, queue, taskType string) (*Ta
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil // no task availabe, not an error
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &t, nil
+}
+
+func (p *Persistence) GetTask(ctx context.Context, taskID int64) (*Task, error) {
+	row := p.db.QueryRow(ctx,
+		`SELECT id, task_queue, task_type, workflow_type, workflow_id, run_id,
+				scheduled_event_id, input, activity_name,
+				visibility_time, lease_owner, lease_expires_at
+		 FROM tasks
+		 WHERE id = $1`,
+		taskID,
+	)
+
+	var t Task
+	err := row.Scan(
+		&t.ID,
+		&t.TaskQueue,
+		&t.TaskType,
+		&t.WorkflowType,
+		&t.WorkflowID,
+		&t.RunID,
+		&t.ScheduledEventID,
+		&t.Input,
+		&t.ActivityName,
+		&t.VisibilityTime,
+		&t.LeaseOwner,
+		&t.LeaseExpiresAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
 	}
 
 	if err != nil {
