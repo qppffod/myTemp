@@ -33,15 +33,15 @@ func CompleteWorkflow(ctx *Context, result []byte) {
 }
 
 func ExecuteActivity(ctx *Context, activityName string, input any) []byte {
-	for i := ctx.eventIdx; i < len(ctx.history); i++ {
-		event := ctx.history[i]
-		if event.EventType == "ActivityCompleted" {
-			ctx.eventIdx = i + 1
+	for _, event := range ctx.history {
+		if event.EventType == "ActivityCompleted" && event.ActivityName == activityName {
 			return event.Data
 		}
-		if event.EventType == "ActivityScheduled" {
-			ctx.eventIdx = i + 1
-			continue
+	}
+
+	for _, event := range ctx.history {
+		if event.EventType == "ActivityScheduled" && event.ActivityName == activityName {
+			return event.Data
 		}
 	}
 
