@@ -109,6 +109,10 @@ func (w *Worker) executeWorkflowTask(ctx context.Context, task *pb.PollWorkflowT
 
 	commands := wfCtx.Commands()
 
+	if len(commands) == 0 && !wfCtx.HasPendingActivities() {
+		commands = append(commands, &pb.Command{Type: "CompleteWorkflow"})
+	}
+
 	w.client.engine.RespondWorkflowTaskCompleted(ctx, &pb.RespondWorkflowTaskCompletedRequest{
 		TaskId:     task.TaskId,
 		WorkflowId: task.WorkflowId,

@@ -25,6 +25,27 @@ func (c *Context) Commands() []*pb.Command {
 	return c.commands
 }
 
+func (c *Context) HasPendingActivities() bool {
+	scheduled := make(map[string]bool)
+	completed := make(map[string]bool)
+
+	for _, event := range c.history {
+		if event.EventType == "ActivityScheduled" {
+			scheduled[event.EventType] = true
+		}
+		if event.EventType == "ActivityCompleted" {
+			completed[event.EventType] = true
+		}
+	}
+
+	for name := range scheduled {
+		if !completed[name] {
+			return true
+		}
+	}
+	return false
+}
+
 func CompleteWorkflow(ctx *Context, result []byte) {
 	ctx.commands = append(ctx.commands, &pb.Command{
 		Type:  "CompleteWorkflow",
