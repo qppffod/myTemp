@@ -114,6 +114,17 @@ func (h *History) CompleteWorkflowTask(ctx context.Context, taskID int64, workfl
 			nextEventID++
 
 		case "CompleteWorkflow":
+			if err := h.p.InsertEvent(ctx, tx, persistence.Event{
+				WorkflowID:   workflowID,
+				RunID:        runID,
+				EventID:      nextEventID,
+				EventType:    "WorkflowCompleted",
+				ActivityName: cmd.ActivityName,
+				Data:         cmd.Input,
+			}); err != nil {
+				return fmt.Errorf("insert workflow completed event: %w", err)
+			}
+
 			err := h.p.UpdateWorkflowStatus(ctx, tx, workflowID, runID, "Completed")
 			if err != nil {
 				return err
