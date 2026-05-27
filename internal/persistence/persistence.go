@@ -64,6 +64,9 @@ func (p *Persistence) UpdateWorkflowStatus(ctx context.Context, tx pgx.Tx, workf
 }
 
 func (p *Persistence) InsertEvent(ctx context.Context, tx pgx.Tx, e Event) error {
+	if e.Data == nil {
+		e.Data = []byte{}
+	}
 	_, err := tx.Exec(ctx,
 		`INSERT INTO events (workflow_id, run_id, event_id, event_type, activity_name, data)
 		 VALUES ($1, $2, $3, $4, $5, $6)`,
