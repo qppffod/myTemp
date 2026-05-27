@@ -10,14 +10,16 @@ import (
 type Context struct {
 	ctx      context.Context
 	history  []*pb.HistoryEvent
+	queue    string
 	eventIdx int
 	commands []*pb.Command
 }
 
-func New(ctx context.Context, history []*pb.HistoryEvent) *Context {
+func New(ctx context.Context, history []*pb.HistoryEvent, queue string) *Context {
 	return &Context{
 		ctx:     ctx,
 		history: history,
+		queue:   queue,
 	}
 }
 
@@ -69,6 +71,7 @@ func ExecuteActivity(ctx *Context, activityName string, input any) []byte {
 	inputBytes, _ := json.Marshal(input)
 	ctx.commands = append(ctx.commands, &pb.Command{
 		Type:         "ScheduleActivity",
+		TaskQueue:    ctx.queue,
 		ActivityName: activityName,
 		Input:        inputBytes,
 	})

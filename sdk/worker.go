@@ -104,7 +104,7 @@ func (w *Worker) executeWorkflowTask(ctx context.Context, task *pb.PollWorkflowT
 		return
 	}
 
-	wfCtx := workflow.New(ctx, task.History)
+	wfCtx := workflow.New(ctx, task.History, w.queue)
 
 	fn.Call([]reflect.Value{reflect.ValueOf(wfCtx)})
 
