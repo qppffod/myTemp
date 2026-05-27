@@ -2,6 +2,7 @@ package sdk
 
 import (
 	"context"
+	"log"
 	"reflect"
 	"runtime"
 	"strings"
@@ -113,12 +114,14 @@ func (w *Worker) executeWorkflowTask(ctx context.Context, task *pb.PollWorkflowT
 		commands = append(commands, &pb.Command{Type: "CompleteWorkflow"})
 	}
 
-	w.client.engine.RespondWorkflowTaskCompleted(ctx, &pb.RespondWorkflowTaskCompletedRequest{
+	if _, err := w.client.engine.RespondWorkflowTaskCompleted(ctx, &pb.RespondWorkflowTaskCompletedRequest{
 		TaskId:     task.TaskId,
 		WorkflowId: task.WorkflowId,
 		RunId:      task.RunId,
 		Commands:   commands,
-	})
+	}); err != nil {
+		log.Printf("RespondWorkflowTaskCompleted (task=%d): %v", task.TaskId, err)
+	}
 }
 
 func (w *Worker) pollActivityTasks(ctx context.Context) {
