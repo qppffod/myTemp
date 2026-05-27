@@ -31,10 +31,10 @@ func (c *Context) HasPendingActivities() bool {
 
 	for _, event := range c.history {
 		if event.EventType == "ActivityScheduled" {
-			scheduled[event.EventType] = true
+			scheduled[event.ActivityName] = true
 		}
 		if event.EventType == "ActivityCompleted" {
-			completed[event.EventType] = true
+			completed[event.ActivityName] = true
 		}
 	}
 
