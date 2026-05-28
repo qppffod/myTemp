@@ -78,6 +78,13 @@ func (h *History) CompleteWorkflowTask(ctx context.Context, taskID int64, workfl
 		return fmt.Errorf("get workflow execution: %w", err)
 	}
 
+	if exec.Status != "Running" {
+		if err := h.p.CompleteTask(ctx, tx, taskID); err != nil {
+			return fmt.Errorf("complete workflow task: %w", err)
+		}
+		return tx.Commit(ctx)
+	}
+
 	events, err := h.p.GetEvents(ctx, workflowID, runID)
 	if err != nil {
 		return fmt.Errorf("get events: %w", err)
