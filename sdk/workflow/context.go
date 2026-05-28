@@ -54,13 +54,6 @@ type ActivityFuture struct {
 	callIndex    int64
 }
 
-func CompleteWorkflow(ctx *Context, result []byte) {
-	ctx.commands = append(ctx.commands, &pb.Command{
-		Type:  "CompleteWorkflow",
-		Input: result,
-	})
-}
-
 func ExecuteActivity(ctx *Context, activityName string, input any) []byte {
 	for _, event := range ctx.history {
 		if event.EventType == "ActivityCompleted" && event.ActivityName == activityName {
