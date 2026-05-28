@@ -48,6 +48,12 @@ func (c *Context) HasPendingActivities() bool {
 	return false
 }
 
+type ActivityFuture struct {
+	ctx          *Context
+	activityName string
+	callIndex    int64
+}
+
 func CompleteWorkflow(ctx *Context, result []byte) {
 	ctx.commands = append(ctx.commands, &pb.Command{
 		Type:  "CompleteWorkflow",
