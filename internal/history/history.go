@@ -96,12 +96,13 @@ func (h *History) CompleteWorkflowTask(ctx context.Context, taskID int64, workfl
 		case "ScheduleActivity":
 
 			if err := h.p.InsertEvent(ctx, tx, persistence.Event{
-				WorkflowID:   workflowID,
-				RunID:        runID,
-				EventID:      nextEventID,
-				EventType:    "ActivityScheduled",
-				ActivityName: cmd.ActivityName,
-				Data:         cmd.Input,
+				WorkflowID:    workflowID,
+				RunID:         runID,
+				EventID:       nextEventID,
+				EventType:     "ActivityScheduled",
+				ActivityName:  cmd.ActivityName,
+				ActivityIndex: cmd.ActivityIndex,
+				Data:          cmd.Input,
 			}); err != nil {
 				return err
 			}
@@ -114,6 +115,7 @@ func (h *History) CompleteWorkflowTask(ctx context.Context, taskID int64, workfl
 				RunID:            runID,
 				ScheduledEventID: nextEventID,
 				ActivityName:     cmd.ActivityName,
+				ActivityIndex:    cmd.ActivityIndex,
 				Input:            cmd.Input,
 			}); err != nil {
 				return err
@@ -165,12 +167,13 @@ func (h *History) CompleteActivityTask(ctx context.Context, taskID int64, workfl
 	nextEventID := int64(len(events)) + 1
 
 	if err := h.p.InsertEvent(ctx, tx, persistence.Event{
-		WorkflowID:   workflowID,
-		RunID:        runID,
-		EventID:      nextEventID,
-		EventType:    "ActivityCompleted",
-		ActivityName: task.ActivityName,
-		Data:         result,
+		WorkflowID:    workflowID,
+		RunID:         runID,
+		EventID:       nextEventID,
+		EventType:     "ActivityCompleted",
+		ActivityName:  task.ActivityName,
+		ActivityIndex: task.ActivityIndex,
+		Data:          result,
 	}); err != nil {
 		return fmt.Errorf("insert complete activity event: %w", err)
 	}

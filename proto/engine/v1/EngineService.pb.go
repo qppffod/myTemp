@@ -586,7 +586,8 @@ type HistoryEvent struct {
 	EventId       int64                  `protobuf:"varint,1,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
 	EventType     string                 `protobuf:"bytes,2,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
 	ActivityName  string                 `protobuf:"bytes,3,opt,name=activity_name,json=activityName,proto3" json:"activity_name,omitempty"`
-	Data          []byte                 `protobuf:"bytes,4,opt,name=data,proto3" json:"data,omitempty"`
+	ActivityIndex int32                  `protobuf:"varint,4,opt,name=activity_index,json=activityIndex,proto3" json:"activity_index,omitempty"`
+	Data          []byte                 `protobuf:"bytes,5,opt,name=data,proto3" json:"data,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -642,6 +643,13 @@ func (x *HistoryEvent) GetActivityName() string {
 	return ""
 }
 
+func (x *HistoryEvent) GetActivityIndex() int32 {
+	if x != nil {
+		return x.ActivityIndex
+	}
+	return 0
+}
+
 func (x *HistoryEvent) GetData() []byte {
 	if x != nil {
 		return x.Data
@@ -653,9 +661,10 @@ type Command struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Type          string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"` // "ScheduleActivity" or "CompleteWorkflow"
 	ActivityName  string                 `protobuf:"bytes,2,opt,name=activity_name,json=activityName,proto3" json:"activity_name,omitempty"`
-	TaskQueue     string                 `protobuf:"bytes,3,opt,name=task_queue,json=taskQueue,proto3" json:"task_queue,omitempty"`
-	Input         []byte                 `protobuf:"bytes,4,opt,name=input,proto3" json:"input,omitempty"`
-	Data          []byte                 `protobuf:"bytes,5,opt,name=data,proto3" json:"data,omitempty"`
+	ActivityIndex int32                  `protobuf:"varint,3,opt,name=activity_index,json=activityIndex,proto3" json:"activity_index,omitempty"`
+	TaskQueue     string                 `protobuf:"bytes,4,opt,name=task_queue,json=taskQueue,proto3" json:"task_queue,omitempty"`
+	Input         []byte                 `protobuf:"bytes,5,opt,name=input,proto3" json:"input,omitempty"`
+	Data          []byte                 `protobuf:"bytes,6,opt,name=data,proto3" json:"data,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -702,6 +711,13 @@ func (x *Command) GetActivityName() string {
 		return x.ActivityName
 	}
 	return ""
+}
+
+func (x *Command) GetActivityIndex() int32 {
+	if x != nil {
+		return x.ActivityIndex
+	}
+	return 0
 }
 
 func (x *Command) GetTaskQueue() string {
@@ -772,20 +788,22 @@ const file_engine_v1_EngineService_proto_rawDesc = "" +
 	"workflowId\x12\x15\n" +
 	"\x06run_id\x18\x03 \x01(\tR\x05runId\x12\x16\n" +
 	"\x06result\x18\x04 \x01(\fR\x06result\"&\n" +
-	"$RespondActivityTaskCompletedResponse\"\x81\x01\n" +
+	"$RespondActivityTaskCompletedResponse\"\xa8\x01\n" +
 	"\fHistoryEvent\x12\x19\n" +
 	"\bevent_id\x18\x01 \x01(\x03R\aeventId\x12\x1d\n" +
 	"\n" +
 	"event_type\x18\x02 \x01(\tR\teventType\x12#\n" +
-	"\ractivity_name\x18\x03 \x01(\tR\factivityName\x12\x12\n" +
-	"\x04data\x18\x04 \x01(\fR\x04data\"\x8b\x01\n" +
+	"\ractivity_name\x18\x03 \x01(\tR\factivityName\x12%\n" +
+	"\x0eactivity_index\x18\x04 \x01(\x05R\ractivityIndex\x12\x12\n" +
+	"\x04data\x18\x05 \x01(\fR\x04data\"\xb2\x01\n" +
 	"\aCommand\x12\x12\n" +
 	"\x04type\x18\x01 \x01(\tR\x04type\x12#\n" +
-	"\ractivity_name\x18\x02 \x01(\tR\factivityName\x12\x1d\n" +
+	"\ractivity_name\x18\x02 \x01(\tR\factivityName\x12%\n" +
+	"\x0eactivity_index\x18\x03 \x01(\x05R\ractivityIndex\x12\x1d\n" +
 	"\n" +
-	"task_queue\x18\x03 \x01(\tR\ttaskQueue\x12\x14\n" +
-	"\x05input\x18\x04 \x01(\fR\x05input\x12\x12\n" +
-	"\x04data\x18\x05 \x01(\fR\x04data2\x9f\x04\n" +
+	"task_queue\x18\x04 \x01(\tR\ttaskQueue\x12\x14\n" +
+	"\x05input\x18\x05 \x01(\fR\x05input\x12\x12\n" +
+	"\x04data\x18\x06 \x01(\fR\x04data2\x9f\x04\n" +
 	"\rEngineService\x12R\n" +
 	"\rStartWorkflow\x12\x1f.engine.v1.StartWorkflowRequest\x1a .engine.v1.StartWorkflowResponse\x12[\n" +
 	"\x10PollWorkflowTask\x12\".engine.v1.PollWorkflowTaskRequest\x1a#.engine.v1.PollWorkflowTaskResponse\x12\x7f\n" +

@@ -78,10 +78,11 @@ func unmarshalCommands(commands []*pb.Command) []history.Command {
 	result := make([]history.Command, len(commands))
 	for i, c := range commands {
 		result[i] = history.Command{
-			Type:         c.Type,
-			ActivityName: c.ActivityName,
-			TaskQueue:    c.TaskQueue,
-			Input:        c.Input,
+			Type:          c.Type,
+			ActivityName:  c.ActivityName,
+			ActivityIndex: c.ActivityIndex,
+			TaskQueue:     c.TaskQueue,
+			Input:         c.Input,
 		}
 	}
 	return result
@@ -91,10 +92,11 @@ func marshalEvents(events []persistence.Event) []*pb.HistoryEvent {
 	result := make([]*pb.HistoryEvent, len(events))
 	for i, e := range events {
 		result[i] = &pb.HistoryEvent{
-			EventId:      e.EventID,
-			EventType:    e.EventType,
-			ActivityName: e.ActivityName,
-			Data:         e.Data,
+			EventId:       e.EventID,
+			EventType:     e.EventType,
+			ActivityName:  e.ActivityName,
+			ActivityIndex: e.ActivityIndex,
+			Data:          e.Data,
 		}
 	}
 	return result

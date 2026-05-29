@@ -8,11 +8,11 @@ import (
 )
 
 type Context struct {
-	ctx      context.Context
-	history  []*pb.HistoryEvent
-	queue    string
-	eventIdx int
-	commands []*pb.Command
+	ctx               context.Context
+	history           []*pb.HistoryEvent
+	commands          []*pb.Command
+	queue             string
+	activityCallCount int
 }
 
 func New(ctx context.Context, history []*pb.HistoryEvent, queue string) *Context {

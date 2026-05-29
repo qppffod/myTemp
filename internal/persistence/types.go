@@ -13,14 +13,15 @@ type WorkflowExecution struct {
 }
 
 type Event struct {
-	ID           int64
-	WorkflowID   string
-	RunID        string
-	EventID      int64
-	EventType    string
-	ActivityName string
-	Data         []byte
-	CreatedAt    time.Time
+	ID            int64
+	WorkflowID    string
+	RunID         string
+	EventID       int64
+	EventType     string
+	ActivityName  string
+	ActivityIndex int32
+	Data          []byte
+	CreatedAt     time.Time
 }
 
 type Task struct {
@@ -33,6 +34,7 @@ type Task struct {
 	ScheduledEventID int64
 	Input            []byte
 	ActivityName     string
+	ActivityIndex    int32
 	VisibilityTime   time.Time
 	LeaseOwner       *string
 	LeaseExpiresAt   *time.Time

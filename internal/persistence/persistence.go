@@ -77,7 +77,7 @@ func (p *Persistence) InsertEvent(ctx context.Context, tx pgx.Tx, e Event) error
 
 func (p *Persistence) GetEvents(ctx context.Context, workflowID, runID string) ([]Event, error) {
 	rows, err := p.db.Query(ctx,
-		`SELECT id, workflow_id, run_id, event_id, event_type, activity_name, data, created_at
+		`SELECT id, workflow_id, run_id, event_id, event_type, activity_name, activity_index, data, created_at
 		 FROM events
 		 WHERE workflow_id = $1 AND run_id = $2
 		 ORDER BY event_id`,
@@ -100,6 +100,7 @@ func (p *Persistence) GetEvents(ctx context.Context, workflowID, runID string) (
 			&e.EventID,
 			&e.EventType,
 			&e.ActivityName,
+			&e.ActivityIndex,
 			&e.Data,
 			&e.CreatedAt,
 		); err != nil {
@@ -119,11 +120,11 @@ func (p *Persistence) GetEvents(ctx context.Context, workflowID, runID string) (
 func (p *Persistence) InsertTask(ctx context.Context, tx pgx.Tx, t Task) error {
 	_, err := tx.Exec(ctx,
 		`INSERT INTO tasks (task_queue, task_type, workflow_type, workflow_id, run_id,
-							scheduled_event_id, input, activity_name,
+							scheduled_event_id, input, activity_name, activity_index,
 							visibility_time, lease_owner, lease_expires_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
 		t.TaskQueue, t.TaskType, t.WorkflowType, t.WorkflowID, t.RunID, t.ScheduledEventID,
-		t.Input, t.ActivityName, t.VisibilityTime, t.LeaseOwner, t.LeaseExpiresAt,
+		t.Input, t.ActivityName, t.ActivityIndex, t.VisibilityTime, t.LeaseOwner, t.LeaseExpiresAt,
 	)
 	return err
 }
@@ -131,7 +132,7 @@ func (p *Persistence) InsertTask(ctx context.Context, tx pgx.Tx, t Task) error {
 func (p *Persistence) PollTask(ctx context.Context, queue, taskType string) (*Task, error) {
 	row := p.db.QueryRow(ctx,
 		`SELECT id, task_queue, task_type, workflow_type, workflow_id, run_id,
-				scheduled_event_id, input, activity_name,
+				scheduled_event_id, input, activity_name, activity_index,
 				visibility_time, lease_owner, lease_expires_at
 		 FROM tasks
 		 WHERE task_queue = $1
@@ -155,6 +156,7 @@ func (p *Persistence) PollTask(ctx context.Context, queue, taskType string) (*Ta
 		&t.ScheduledEventID,
 		&t.Input,
 		&t.ActivityName,
+		&t.ActivityIndex,
 		&t.VisibilityTime,
 		&t.LeaseOwner,
 		&t.LeaseExpiresAt,
@@ -173,7 +175,7 @@ func (p *Persistence) PollTask(ctx context.Context, queue, taskType string) (*Ta
 func (p *Persistence) GetTask(ctx context.Context, taskID int64) (*Task, error) {
 	row := p.db.QueryRow(ctx,
 		`SELECT id, task_queue, task_type, workflow_type, workflow_id, run_id,
-				scheduled_event_id, input, activity_name,
+				scheduled_event_id, input, activity_name, activity_index,
 				visibility_time, lease_owner, lease_expires_at
 		 FROM tasks
 		 WHERE id = $1`,
@@ -191,6 +193,7 @@ func (p *Persistence) GetTask(ctx context.Context, taskID int64) (*Task, error) 
 		&t.ScheduledEventID,
 		&t.Input,
 		&t.ActivityName,
+		&t.ActivityIndex,
 		&t.VisibilityTime,
 		&t.LeaseOwner,
 		&t.LeaseExpiresAt,

@@ -58,13 +58,15 @@ message HistoryEvent {
     int64  event_id   = 1;
     string event_type = 2;
     string activity_name = 3;
-    bytes  data       = 4;
+    int32 activity_index = 4;
+    bytes  data       = 5;
 }
 
 message Command {
     string type          = 1;   // "ScheduleActivity" or "CompleteWorkflow"
     string activity_name = 2;
-    string task_queue    = 3;
-    bytes  input         = 4;
-    bytes  data          = 5;
+    int32 activity_index = 3;
+    string task_queue    = 4;
+    bytes  input         = 5;
+    bytes  data          = 6;
 }

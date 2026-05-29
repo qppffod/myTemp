@@ -18,6 +18,7 @@ CREATE TABLE events (
     event_id        BIGINT NOT NULL,
     event_type      TEXT NOT NULL,
     activity_name   TEXT NOT NULL DEFAULT '',
+    activity_index  INT NOT NULL DEFAULT 0,
     data            BYTEA NOT NULL,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -31,7 +32,8 @@ CREATE TABLE tasks (
     run_id          UUID NOT NULL,
     scheduled_event_id BIGINT NOT NULL,
     input           BYTEA,
-    activity_name   TEXT,                    
+    activity_name   TEXT,
+    activity_index  INT NOT NULL DEFAULT 0,   
     visibility_time TIMESTAMPTZ NOT NULL DEFAULT now(),
     lease_owner     TEXT,
     lease_expires_at TIMESTAMPTZ

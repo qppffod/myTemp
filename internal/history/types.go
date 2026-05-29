@@ -1,8 +1,9 @@
 package history
 
 type Command struct {
-	Type         string
-	ActivityName string
-	TaskQueue    string
-	Input        []byte
+	Type          string
+	ActivityName  string
+	TaskQueue     string
+	Input         []byte
+	ActivityIndex int32
 }
