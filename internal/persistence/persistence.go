@@ -68,9 +68,9 @@ func (p *Persistence) InsertEvent(ctx context.Context, tx pgx.Tx, e Event) error
 		e.Data = []byte{}
 	}
 	_, err := tx.Exec(ctx,
-		`INSERT INTO events (workflow_id, run_id, event_id, event_type, activity_name, data)
-		 VALUES ($1, $2, $3, $4, $5, $6)`,
-		e.WorkflowID, e.RunID, e.EventID, e.EventType, e.ActivityName, e.Data,
+		`INSERT INTO events (workflow_id, run_id, event_id, event_type, activity_name, activity_index, data)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+		e.WorkflowID, e.RunID, e.EventID, e.EventType, e.ActivityName, e.ActivityIndex, e.Data,
 	)
 	return err
 }

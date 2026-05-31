@@ -2,6 +2,7 @@ package sdk
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"reflect"
 	"runtime"
@@ -106,11 +107,60 @@ func (w *Worker) executeWorkflowTask(ctx context.Context, task *pb.PollWorkflowT
 
 	wfCtx := workflow.New(ctx, task.History, w.queue)
 
-	fn.Call([]reflect.Value{reflect.ValueOf(wfCtx)})
+	var inputBytes []byte
+	for _, event := range task.History {
+		if event.EventType == "WorkflowStarted" {
+			inputBytes = event.Data
+			break
+		}
+	}
+
+	fnType := fn.Type()
+	inputType := fnType.In(1)
+	inputPtr := reflect.New(inputType)
+	if len(inputBytes) > 0 {
+		if err := json.Unmarshal(inputBytes, inputPtr.Interface()); err != nil {
+			log.Printf("unmarshal workflow input: %v", err)
+			return
+		}
+	}
+
+	var workflowReturnErr error
+	pendingActivity := false
+
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				if r == workflow.ErrPendingActivity {
+					pendingActivity = true
+					return
+				}
+
+				panic(r)
+			}
+		}()
+
+		results := fn.Call([]reflect.Value{
+			reflect.ValueOf(wfCtx),
+			inputPtr.Elem(),
+		})
+
+		if len(results) > 0 && !results[0].IsNil() {
+			workflowReturnErr = results[0].Interface().(error)
+		}
+	}()
 
 	commands := wfCtx.Commands()
 
-	if len(commands) == 0 && !wfCtx.HasPendingActivities() {
+	switch {
+	case pendingActivity:
+		// workflow paused — report scheduled commands only
+	case workflowReturnErr != nil:
+		commands = append(commands, &pb.Command{
+			Type:  "FailWorkflow",
+			Input: []byte(workflowReturnErr.Error()),
+		})
+	default:
 		commands = append(commands, &pb.Command{Type: "CompleteWorkflow"})
 	}
 

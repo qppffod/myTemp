@@ -3,6 +3,8 @@ package workflow
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"log"
 
 	pb "github.com/qppffod/myTemp/proto/engine/v1"
 )
@@ -48,32 +50,69 @@ func (c *Context) HasPendingActivities() bool {
 	return false
 }
 
+var ErrPendingActivity = errors.New("activity pending")
+
 type ActivityFuture struct {
 	ctx          *Context
 	activityName string
-	callIndex    int64
+	callIndex    int
 }
 
-func ExecuteActivity(ctx *Context, activityName string, input any) []byte {
-	for _, event := range ctx.history {
-		if event.EventType == "ActivityCompleted" && event.ActivityName == activityName {
-			return event.Data
+func (f *ActivityFuture) Get(out *[]byte) error {
+	for _, event := range f.ctx.history {
+		if event.ActivityName != f.activityName {
+			continue
+		}
+		if event.ActivityIndex != int32(f.callIndex) {
+			continue
+		}
+		if event.EventType == "ActivityCompleted" {
+			if out != nil {
+				*out = event.Data
+			}
+			return nil
+		}
+		if event.EventType == "ActivityFailed" {
+			return errors.New(string(event.Data))
 		}
 	}
 
+	// Not in history yet — workflow can't proceed past this Get.
+	// Panic out of the workflow function entirely.
+	panic(ErrPendingActivity)
+}
+
+func ExecuteActivity(ctx *Context, activityName string, input any) *ActivityFuture {
+	callIndex := ctx.activityCallCount
+	ctx.activityCallCount++
+
+	alreadyScheduled := false
 	for _, event := range ctx.history {
-		if event.EventType == "ActivityScheduled" && event.ActivityName == activityName {
-			return event.Data
+		if event.EventType == "ActivityScheduled" &&
+			event.ActivityName == activityName &&
+			event.ActivityIndex == int32(callIndex) {
+			alreadyScheduled = true
+			break
 		}
 	}
 
-	inputBytes, _ := json.Marshal(input)
-	ctx.commands = append(ctx.commands, &pb.Command{
-		Type:         "ScheduleActivity",
-		TaskQueue:    ctx.queue,
-		ActivityName: activityName,
-		Input:        inputBytes,
-	})
+	if !alreadyScheduled {
+		inputBytes, err := json.Marshal(input)
+		if err != nil {
+			log.Println("ExecuteActivity: marshal input bytes - ", err)
+		}
+		ctx.commands = append(ctx.commands, &pb.Command{
+			Type:          "ScheduleActivity",
+			TaskQueue:     ctx.queue,
+			ActivityName:  activityName,
+			ActivityIndex: int32(callIndex),
+			Input:         inputBytes,
+		})
+	}
 
-	return nil
+	return &ActivityFuture{
+		ctx:          ctx,
+		activityName: activityName,
+		callIndex:    callIndex,
+	}
 }
