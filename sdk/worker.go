@@ -198,12 +198,37 @@ func (w *Worker) executeActivityTask(ctx context.Context, task *pb.PollActivityT
 		return
 	}
 
-	result := fn.Call([]reflect.Value{reflect.ValueOf(ctx), reflect.ValueOf(task.Input)})
+	// Unmarshal the JSON-encoded input into the activity's typed parameter.
+	fnType := fn.Type()
+	inputType := fnType.In(1)
+	inputPtr := reflect.New(inputType)
+	if len(task.Input) > 0 {
+		if err := json.Unmarshal(task.Input, inputPtr.Interface()); err != nil {
+			log.Printf("unmarshal activity input (%s): %v", task.ActivityName, err)
+			return
+		}
+	}
+
+	results := fn.Call([]reflect.Value{
+		reflect.ValueOf(ctx),
+		inputPtr.Elem(),
+	})
+
+	// Marshal the activity's typed return value back to JSON.
+	var resultBytes []byte
+	if len(results) > 0 {
+		b, err := json.Marshal(results[0].Interface())
+		if err != nil {
+			log.Printf("marshal activity result (%s): %v", task.ActivityName, err)
+			return
+		}
+		resultBytes = b
+	}
 
 	w.client.engine.RespondActivityTaskCompleted(ctx, &pb.RespondActivityTaskCompletedRequest{
 		TaskId:     task.TaskId,
 		WorkflowId: task.WorkflowId,
 		RunId:      task.RunId,
-		Result:     result[0].Bytes(),
+		Result:     resultBytes,
 	})
 }

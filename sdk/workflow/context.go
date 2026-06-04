@@ -58,7 +58,7 @@ type ActivityFuture struct {
 	callIndex    int
 }
 
-func (f *ActivityFuture) Get(out *[]byte) error {
+func (f *ActivityFuture) Get(out any) error {
 	for _, event := range f.ctx.history {
 		if event.ActivityName != f.activityName {
 			continue
@@ -67,8 +67,10 @@ func (f *ActivityFuture) Get(out *[]byte) error {
 			continue
 		}
 		if event.EventType == "ActivityCompleted" {
-			if out != nil {
-				*out = event.Data
+			if out != nil && len(event.Data) > 0 {
+				if err := json.Unmarshal(event.Data, out); err != nil {
+					return err
+				}
 			}
 			return nil
 		}

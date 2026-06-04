@@ -33,14 +33,36 @@ type PizzaOrder struct {
 	Items   []string
 }
 
+type StockResult struct {
+	Available bool
+	Item      string
+}
+
+type ChargeResult struct {
+	Charged bool
+	Amount  int
+}
+
 func TestWorkflow(c *workflow.Context, order PizzaOrder) {
 
-	// sequential
-	var stock []byte
-	workflow.ExecuteActivity(c, "CheckStock", nil).Get(&stock)
-	var charge []byte
-	workflow.ExecuteActivity(c, "ChargeCard", nil).Get(&charge)
-	workflow.ExecuteActivity(c, "Ship", nil).Get(nil)
+	// sequential, typed data flows from one activity to the next.
+	var stock StockResult
+	workflow.ExecuteActivity(c, "CheckStock", order).Get(&stock)
+	if stock.Available {
+		log.Printf("Stock is correct: %s", stock.Item)
+	}
+
+	// A -> B: CheckStock's typed result is the input to ChargeCard.
+	var charge ChargeResult
+	workflow.ExecuteActivity(c, "ChargeCard", stock).Get(&charge)
+	if charge.Charged {
+		log.Printf("Charged successfully: %d", charge.Amount)
+	}
+
+	// B -> C: ChargeCard's typed result is the input to Ship.
+	var tracking string
+	workflow.ExecuteActivity(c, "Ship", charge).Get(&tracking)
+	log.Printf("Shipped: %s", tracking)
 
 	// parallel execution
 	// f1 := workflow.ExecuteActivity(c, "SendEmail", []byte("test"))
@@ -49,17 +71,21 @@ func TestWorkflow(c *workflow.Context, order PizzaOrder) {
 	// f2.Get(nil)
 }
 
-func CheckStock(ctx context.Context, input []byte) []byte {
-	fmt.Println("CheckStock")
-	return []byte("CheckStock DATA")
+func CheckStock(ctx context.Context, order PizzaOrder) StockResult {
+	fmt.Printf("CheckStock: order %d\n", order.OrderID)
+	item := ""
+	if len(order.Items) > 0 {
+		item = order.Items[0]
+	}
+	return StockResult{Available: true, Item: item}
 }
 
-func ChargeCard(ctx context.Context, input []byte) []byte {
-	fmt.Println("ChargeCard")
-	return []byte("ChargeCard DATA")
+func ChargeCard(ctx context.Context, stock StockResult) ChargeResult {
+	fmt.Printf("ChargeCard: %s available=%v\n", stock.Item, stock.Available)
+	return ChargeResult{Charged: stock.Available, Amount: 100}
 }
 
-func Ship(ctx context.Context, input []byte) []byte {
-	fmt.Println("Ship")
-	return []byte("Ship DATA")
+func Ship(ctx context.Context, charge ChargeResult) string {
+	fmt.Printf("Ship: charged=%v amount=%d\n", charge.Charged, charge.Amount)
+	return "TRACK-12345"
 }
