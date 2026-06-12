@@ -215,3 +215,56 @@ func (h *History) CompleteActivityTask(ctx context.Context, taskID int64, workfl
 
 	return tx.Commit(ctx)
 }
+
+func (h *History) FailActivityTask(ctx context.Context, taskID int64, workflowID, runID, errMsg string) error {
+	tx, err := h.p.BeginTx(ctx)
+	if err != nil {
+		return fmt.Errorf("begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	task, err := h.p.GetTask(ctx, taskID)
+	if err != nil {
+		return fmt.Errorf("get task: %w", err)
+	}
+
+	events, err := h.p.GetEvents(ctx, workflowID, runID)
+	if err != nil {
+		return fmt.Errorf("get events: %w", err)
+	}
+	nextEventID := int64(len(events)) + 1
+
+	if err := h.p.InsertEvent(ctx, tx, persistence.Event{
+		WorkflowID:    workflowID,
+		RunID:         runID,
+		EventID:       nextEventID,
+		EventType:     "ActivityFailed",
+		ActivityName:  task.ActivityName,
+		ActivityIndex: task.ActivityIndex,
+		Data:          []byte(errMsg),
+	}); err != nil {
+		return fmt.Errorf("insert activity failed event: %w", err)
+	}
+
+	if err := h.p.CompleteTask(ctx, tx, taskID); err != nil {
+		return fmt.Errorf("complete activity task: %w", err)
+	}
+
+	exec, err := h.p.GetWorkflowExecution(ctx, workflowID, runID)
+	if err != nil {
+		return fmt.Errorf("get workflow execution: %w", err)
+	}
+
+	if err := h.p.InsertTask(ctx, tx, persistence.Task{
+		TaskQueue:        exec.TaskQueue,
+		TaskType:         "workflow",
+		WorkflowType:     exec.WorkflowType,
+		WorkflowID:       workflowID,
+		RunID:            runID,
+		ScheduledEventID: nextEventID,
+	}); err != nil {
+		return fmt.Errorf("insert workflow task: %w", err)
+	}
+
+	return tx.Commit(ctx)
+}

@@ -3,6 +3,7 @@ package sdk
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"reflect"
 	"runtime"
@@ -204,31 +205,56 @@ func (w *Worker) executeActivityTask(ctx context.Context, task *pb.PollActivityT
 	inputPtr := reflect.New(inputType)
 	if len(task.Input) > 0 {
 		if err := json.Unmarshal(task.Input, inputPtr.Interface()); err != nil {
-			log.Printf("unmarshal activity input (%s): %v", task.ActivityName, err)
+			w.reportActivityFailure(ctx, task, fmt.Sprintf("unmarshal activity input (%s): %v", task.ActivityName, err))
 			return
 		}
 	}
 
-	results := fn.Call([]reflect.Value{
-		reflect.ValueOf(ctx),
-		inputPtr.Elem(),
-	})
+	var results []reflect.Value
+	var activityErr error
 
-	// Marshal the activity's typed return value back to JSON.
-	var resultBytes []byte
-	if len(results) > 0 {
-		b, err := json.Marshal(results[0].Interface())
-		if err != nil {
-			log.Printf("marshal activity result (%s): %v", task.ActivityName, err)
-			return
-		}
-		resultBytes = b
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				activityErr = fmt.Errorf("activity panicked: %v", r)
+			}
+		}()
+		results = fn.Call([]reflect.Value{
+			reflect.ValueOf(ctx),
+			inputPtr.Elem(),
+		})
+	}()
+
+	if activityErr != nil {
+		w.reportActivityFailure(ctx, task, activityErr.Error())
+		return
 	}
 
-	w.client.engine.RespondActivityTaskCompleted(ctx, &pb.RespondActivityTaskCompletedRequest{
-		TaskId:     task.TaskId,
-		WorkflowId: task.WorkflowId,
-		RunId:      task.RunId,
-		Result:     resultBytes,
-	})
+	if len(results) == 2 && !results[1].IsNil() {
+		err := results[1].Interface().(error)
+		w.reportActivityFailure(ctx, task, err.Error())
+		return
+	}
+
+	resultBytes, err := json.Marshal(results[0].Interface())
+	if err != nil {
+		w.reportActivityFailure(ctx, task, fmt.Sprintf("marshal activity result: %v", err))
+		return
+	}
+
+	w.reportActivitySuccess(ctx, task, resultBytes)
+}
+
+func (w *Worker) reportActivitySuccess(ctx context.Context, task *pb.PollActivityTaskResponse, result []byte) {
+	err := w.client.RespondActivityTaskCompleted(ctx, task.TaskId, task.WorkflowId, task.RunId, result)
+	if err != nil {
+		log.Printf("report activity success (task=%d): %v", task.TaskId, err)
+	}
+}
+
+func (w *Worker) reportActivityFailure(ctx context.Context, task *pb.PollActivityTaskResponse, errMsg string) {
+	err := w.client.RespondActivityTaskFailed(ctx, task.TaskId, task.WorkflowId, task.RunId, errMsg)
+	if err != nil {
+		log.Printf("report activity failure (task=%d): %v", task.TaskId, err)
+	}
 }

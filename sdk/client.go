@@ -73,3 +73,13 @@ func (c *Client) RespondActivityTaskCompleted(ctx context.Context, taskID int64,
 	})
 	return err
 }
+
+func (c *Client) RespondActivityTaskFailed(ctx context.Context, taskID int64, workflowID, runID, errMsg string) error {
+	_, err := c.engine.RespondActivityTaskFailed(ctx, &pb.RespondActivityTaskFailedRequest{
+		TaskId:     taskID,
+		WorkflowId: workflowID,
+		RunId:      runID,
+		Error:      errMsg,
+	})
+	return err
+}

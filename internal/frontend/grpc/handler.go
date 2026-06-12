@@ -74,6 +74,11 @@ func (h *Handler) RespondActivityTaskCompleted(ctx context.Context, req *pb.Resp
 	return &pb.RespondActivityTaskCompletedResponse{}, err
 }
 
+func (h *Handler) RespondActivityTaskFailed(ctx context.Context, req *pb.RespondActivityTaskFailedRequest) (*pb.RespondActivityTaskFailedResponse, error) {
+	err := h.history.FailActivityTask(ctx, req.TaskId, req.WorkflowId, req.RunId, req.Error)
+	return &pb.RespondActivityTaskFailedResponse{}, err
+}
+
 func unmarshalCommands(commands []*pb.Command) []history.Command {
 	result := make([]history.Command, len(commands))
 	for i, c := range commands {

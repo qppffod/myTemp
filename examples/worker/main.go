@@ -43,26 +43,41 @@ type ChargeResult struct {
 	Amount  int
 }
 
-func TestWorkflow(c *workflow.Context, order PizzaOrder) {
+func TestWorkflow(c *workflow.Context, order PizzaOrder) error {
 
 	// sequential, typed data flows from one activity to the next.
 	var stock StockResult
-	workflow.ExecuteActivity(c, "CheckStock", order).Get(&stock)
+	err := workflow.ExecuteActivity(c, "CheckStock", order).Get(&stock)
+	if err != nil {
+		return err
+	}
 	if stock.Available {
 		log.Printf("Stock is correct: %s", stock.Item)
+	} else {
+		return fmt.Errorf("out of stock")
 	}
 
 	// A -> B: CheckStock's typed result is the input to ChargeCard.
 	var charge ChargeResult
-	workflow.ExecuteActivity(c, "ChargeCard", stock).Get(&charge)
+	err = workflow.ExecuteActivity(c, "ChargeCard", stock).Get(&charge)
+	if err != nil {
+		return err
+	}
 	if charge.Charged {
 		log.Printf("Charged successfully: %d", charge.Amount)
+	} else {
+		return fmt.Errorf("charge failed")
 	}
 
 	// B -> C: ChargeCard's typed result is the input to Ship.
 	var tracking string
-	workflow.ExecuteActivity(c, "Ship", charge).Get(&tracking)
+	err = workflow.ExecuteActivity(c, "Ship", charge).Get(&tracking)
+	if err != nil {
+		return err
+	}
 	log.Printf("Shipped: %s", tracking)
+
+	return nil
 
 	// parallel execution
 	// f1 := workflow.ExecuteActivity(c, "SendEmail", []byte("test"))
