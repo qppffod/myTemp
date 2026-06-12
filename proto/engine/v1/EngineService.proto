@@ -10,6 +10,7 @@ service EngineService {
     rpc RespondWorkflowTaskCompleted(RespondWorkflowTaskCompletedRequest) returns (RespondWorkflowTaskCompletedResponse);
     rpc PollActivityTask(PollActivityTaskRequest) returns (PollActivityTaskResponse);
     rpc RespondActivityTaskCompleted(RespondActivityTaskCompletedRequest) returns (RespondActivityTaskCompletedResponse);
+    rpc RespondActivityTaskFailed(RespondActivityTaskFailedRequest) returns (RespondActivityTaskFailedResponse);
 }
 
 message StartWorkflowRequest {
@@ -53,6 +54,15 @@ message RespondActivityTaskCompletedRequest {
     bytes  result     = 4;
 }
 message RespondActivityTaskCompletedResponse {}
+
+message RespondActivityTaskFailedRequest {
+    int64 task_id = 1;
+    string workflow_id = 2;
+    string run_id = 3;
+    string error = 4;
+}
+message RespondActivityTaskFailedResponse {}
+
 
 message HistoryEvent {
     int64  event_id   = 1;

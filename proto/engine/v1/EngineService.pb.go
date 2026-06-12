@@ -581,6 +581,110 @@ func (*RespondActivityTaskCompletedResponse) Descriptor() ([]byte, []int) {
 	return file_engine_v1_EngineService_proto_rawDescGZIP(), []int{9}
 }
 
+type RespondActivityTaskFailedRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TaskId        int64                  `protobuf:"varint,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	WorkflowId    string                 `protobuf:"bytes,2,opt,name=workflow_id,json=workflowId,proto3" json:"workflow_id,omitempty"`
+	RunId         string                 `protobuf:"bytes,3,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
+	Error         string                 `protobuf:"bytes,4,opt,name=error,proto3" json:"error,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RespondActivityTaskFailedRequest) Reset() {
+	*x = RespondActivityTaskFailedRequest{}
+	mi := &file_engine_v1_EngineService_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RespondActivityTaskFailedRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RespondActivityTaskFailedRequest) ProtoMessage() {}
+
+func (x *RespondActivityTaskFailedRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_engine_v1_EngineService_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RespondActivityTaskFailedRequest.ProtoReflect.Descriptor instead.
+func (*RespondActivityTaskFailedRequest) Descriptor() ([]byte, []int) {
+	return file_engine_v1_EngineService_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *RespondActivityTaskFailedRequest) GetTaskId() int64 {
+	if x != nil {
+		return x.TaskId
+	}
+	return 0
+}
+
+func (x *RespondActivityTaskFailedRequest) GetWorkflowId() string {
+	if x != nil {
+		return x.WorkflowId
+	}
+	return ""
+}
+
+func (x *RespondActivityTaskFailedRequest) GetRunId() string {
+	if x != nil {
+		return x.RunId
+	}
+	return ""
+}
+
+func (x *RespondActivityTaskFailedRequest) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+type RespondActivityTaskFailedResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RespondActivityTaskFailedResponse) Reset() {
+	*x = RespondActivityTaskFailedResponse{}
+	mi := &file_engine_v1_EngineService_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RespondActivityTaskFailedResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RespondActivityTaskFailedResponse) ProtoMessage() {}
+
+func (x *RespondActivityTaskFailedResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_engine_v1_EngineService_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RespondActivityTaskFailedResponse.ProtoReflect.Descriptor instead.
+func (*RespondActivityTaskFailedResponse) Descriptor() ([]byte, []int) {
+	return file_engine_v1_EngineService_proto_rawDescGZIP(), []int{11}
+}
+
 type HistoryEvent struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	EventId       int64                  `protobuf:"varint,1,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
@@ -594,7 +698,7 @@ type HistoryEvent struct {
 
 func (x *HistoryEvent) Reset() {
 	*x = HistoryEvent{}
-	mi := &file_engine_v1_EngineService_proto_msgTypes[10]
+	mi := &file_engine_v1_EngineService_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -606,7 +710,7 @@ func (x *HistoryEvent) String() string {
 func (*HistoryEvent) ProtoMessage() {}
 
 func (x *HistoryEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_engine_v1_EngineService_proto_msgTypes[10]
+	mi := &file_engine_v1_EngineService_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -619,7 +723,7 @@ func (x *HistoryEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HistoryEvent.ProtoReflect.Descriptor instead.
 func (*HistoryEvent) Descriptor() ([]byte, []int) {
-	return file_engine_v1_EngineService_proto_rawDescGZIP(), []int{10}
+	return file_engine_v1_EngineService_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *HistoryEvent) GetEventId() int64 {
@@ -671,7 +775,7 @@ type Command struct {
 
 func (x *Command) Reset() {
 	*x = Command{}
-	mi := &file_engine_v1_EngineService_proto_msgTypes[11]
+	mi := &file_engine_v1_EngineService_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -683,7 +787,7 @@ func (x *Command) String() string {
 func (*Command) ProtoMessage() {}
 
 func (x *Command) ProtoReflect() protoreflect.Message {
-	mi := &file_engine_v1_EngineService_proto_msgTypes[11]
+	mi := &file_engine_v1_EngineService_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -696,7 +800,7 @@ func (x *Command) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Command.ProtoReflect.Descriptor instead.
 func (*Command) Descriptor() ([]byte, []int) {
-	return file_engine_v1_EngineService_proto_rawDescGZIP(), []int{11}
+	return file_engine_v1_EngineService_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *Command) GetType() string {
@@ -788,7 +892,14 @@ const file_engine_v1_EngineService_proto_rawDesc = "" +
 	"workflowId\x12\x15\n" +
 	"\x06run_id\x18\x03 \x01(\tR\x05runId\x12\x16\n" +
 	"\x06result\x18\x04 \x01(\fR\x06result\"&\n" +
-	"$RespondActivityTaskCompletedResponse\"\xa8\x01\n" +
+	"$RespondActivityTaskCompletedResponse\"\x89\x01\n" +
+	" RespondActivityTaskFailedRequest\x12\x17\n" +
+	"\atask_id\x18\x01 \x01(\x03R\x06taskId\x12\x1f\n" +
+	"\vworkflow_id\x18\x02 \x01(\tR\n" +
+	"workflowId\x12\x15\n" +
+	"\x06run_id\x18\x03 \x01(\tR\x05runId\x12\x14\n" +
+	"\x05error\x18\x04 \x01(\tR\x05error\"#\n" +
+	"!RespondActivityTaskFailedResponse\"\xa8\x01\n" +
 	"\fHistoryEvent\x12\x19\n" +
 	"\bevent_id\x18\x01 \x01(\x03R\aeventId\x12\x1d\n" +
 	"\n" +
@@ -803,13 +914,14 @@ const file_engine_v1_EngineService_proto_rawDesc = "" +
 	"\n" +
 	"task_queue\x18\x04 \x01(\tR\ttaskQueue\x12\x14\n" +
 	"\x05input\x18\x05 \x01(\fR\x05input\x12\x12\n" +
-	"\x04data\x18\x06 \x01(\fR\x04data2\x9f\x04\n" +
+	"\x04data\x18\x06 \x01(\fR\x04data2\x97\x05\n" +
 	"\rEngineService\x12R\n" +
 	"\rStartWorkflow\x12\x1f.engine.v1.StartWorkflowRequest\x1a .engine.v1.StartWorkflowResponse\x12[\n" +
 	"\x10PollWorkflowTask\x12\".engine.v1.PollWorkflowTaskRequest\x1a#.engine.v1.PollWorkflowTaskResponse\x12\x7f\n" +
 	"\x1cRespondWorkflowTaskCompleted\x12..engine.v1.RespondWorkflowTaskCompletedRequest\x1a/.engine.v1.RespondWorkflowTaskCompletedResponse\x12[\n" +
 	"\x10PollActivityTask\x12\".engine.v1.PollActivityTaskRequest\x1a#.engine.v1.PollActivityTaskResponse\x12\x7f\n" +
-	"\x1cRespondActivityTaskCompleted\x12..engine.v1.RespondActivityTaskCompletedRequest\x1a/.engine.v1.RespondActivityTaskCompletedResponseB2Z0github.com/you/myengine/proto/engine/v1;enginev1b\x06proto3"
+	"\x1cRespondActivityTaskCompleted\x12..engine.v1.RespondActivityTaskCompletedRequest\x1a/.engine.v1.RespondActivityTaskCompletedResponse\x12v\n" +
+	"\x19RespondActivityTaskFailed\x12+.engine.v1.RespondActivityTaskFailedRequest\x1a,.engine.v1.RespondActivityTaskFailedResponseB2Z0github.com/you/myengine/proto/engine/v1;enginev1b\x06proto3"
 
 var (
 	file_engine_v1_EngineService_proto_rawDescOnce sync.Once
@@ -823,7 +935,7 @@ func file_engine_v1_EngineService_proto_rawDescGZIP() []byte {
 	return file_engine_v1_EngineService_proto_rawDescData
 }
 
-var file_engine_v1_EngineService_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_engine_v1_EngineService_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_engine_v1_EngineService_proto_goTypes = []any{
 	(*StartWorkflowRequest)(nil),                 // 0: engine.v1.StartWorkflowRequest
 	(*StartWorkflowResponse)(nil),                // 1: engine.v1.StartWorkflowResponse
@@ -835,24 +947,28 @@ var file_engine_v1_EngineService_proto_goTypes = []any{
 	(*RespondWorkflowTaskCompletedResponse)(nil), // 7: engine.v1.RespondWorkflowTaskCompletedResponse
 	(*RespondActivityTaskCompletedRequest)(nil),  // 8: engine.v1.RespondActivityTaskCompletedRequest
 	(*RespondActivityTaskCompletedResponse)(nil), // 9: engine.v1.RespondActivityTaskCompletedResponse
-	(*HistoryEvent)(nil),                         // 10: engine.v1.HistoryEvent
-	(*Command)(nil),                              // 11: engine.v1.Command
+	(*RespondActivityTaskFailedRequest)(nil),     // 10: engine.v1.RespondActivityTaskFailedRequest
+	(*RespondActivityTaskFailedResponse)(nil),    // 11: engine.v1.RespondActivityTaskFailedResponse
+	(*HistoryEvent)(nil),                         // 12: engine.v1.HistoryEvent
+	(*Command)(nil),                              // 13: engine.v1.Command
 }
 var file_engine_v1_EngineService_proto_depIdxs = []int32{
-	10, // 0: engine.v1.PollWorkflowTaskResponse.history:type_name -> engine.v1.HistoryEvent
-	11, // 1: engine.v1.RespondWorkflowTaskCompletedRequest.commands:type_name -> engine.v1.Command
+	12, // 0: engine.v1.PollWorkflowTaskResponse.history:type_name -> engine.v1.HistoryEvent
+	13, // 1: engine.v1.RespondWorkflowTaskCompletedRequest.commands:type_name -> engine.v1.Command
 	0,  // 2: engine.v1.EngineService.StartWorkflow:input_type -> engine.v1.StartWorkflowRequest
 	2,  // 3: engine.v1.EngineService.PollWorkflowTask:input_type -> engine.v1.PollWorkflowTaskRequest
 	6,  // 4: engine.v1.EngineService.RespondWorkflowTaskCompleted:input_type -> engine.v1.RespondWorkflowTaskCompletedRequest
 	4,  // 5: engine.v1.EngineService.PollActivityTask:input_type -> engine.v1.PollActivityTaskRequest
 	8,  // 6: engine.v1.EngineService.RespondActivityTaskCompleted:input_type -> engine.v1.RespondActivityTaskCompletedRequest
-	1,  // 7: engine.v1.EngineService.StartWorkflow:output_type -> engine.v1.StartWorkflowResponse
-	3,  // 8: engine.v1.EngineService.PollWorkflowTask:output_type -> engine.v1.PollWorkflowTaskResponse
-	7,  // 9: engine.v1.EngineService.RespondWorkflowTaskCompleted:output_type -> engine.v1.RespondWorkflowTaskCompletedResponse
-	5,  // 10: engine.v1.EngineService.PollActivityTask:output_type -> engine.v1.PollActivityTaskResponse
-	9,  // 11: engine.v1.EngineService.RespondActivityTaskCompleted:output_type -> engine.v1.RespondActivityTaskCompletedResponse
-	7,  // [7:12] is the sub-list for method output_type
-	2,  // [2:7] is the sub-list for method input_type
+	10, // 7: engine.v1.EngineService.RespondActivityTaskFailed:input_type -> engine.v1.RespondActivityTaskFailedRequest
+	1,  // 8: engine.v1.EngineService.StartWorkflow:output_type -> engine.v1.StartWorkflowResponse
+	3,  // 9: engine.v1.EngineService.PollWorkflowTask:output_type -> engine.v1.PollWorkflowTaskResponse
+	7,  // 10: engine.v1.EngineService.RespondWorkflowTaskCompleted:output_type -> engine.v1.RespondWorkflowTaskCompletedResponse
+	5,  // 11: engine.v1.EngineService.PollActivityTask:output_type -> engine.v1.PollActivityTaskResponse
+	9,  // 12: engine.v1.EngineService.RespondActivityTaskCompleted:output_type -> engine.v1.RespondActivityTaskCompletedResponse
+	11, // 13: engine.v1.EngineService.RespondActivityTaskFailed:output_type -> engine.v1.RespondActivityTaskFailedResponse
+	8,  // [8:14] is the sub-list for method output_type
+	2,  // [2:8] is the sub-list for method input_type
 	2,  // [2:2] is the sub-list for extension type_name
 	2,  // [2:2] is the sub-list for extension extendee
 	0,  // [0:2] is the sub-list for field type_name
@@ -869,7 +985,7 @@ func file_engine_v1_EngineService_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_engine_v1_EngineService_proto_rawDesc), len(file_engine_v1_EngineService_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   12,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
