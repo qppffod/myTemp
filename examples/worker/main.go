@@ -71,21 +71,21 @@ func TestWorkflow(c *workflow.Context, order PizzaOrder) {
 	// f2.Get(nil)
 }
 
-func CheckStock(ctx context.Context, order PizzaOrder) StockResult {
+func CheckStock(ctx context.Context, order PizzaOrder) (StockResult, error) {
 	fmt.Printf("CheckStock: order %d\n", order.OrderID)
 	item := ""
 	if len(order.Items) > 0 {
 		item = order.Items[0]
 	}
-	return StockResult{Available: true, Item: item}
+	return StockResult{Available: true, Item: item}, nil
 }
 
-func ChargeCard(ctx context.Context, stock StockResult) ChargeResult {
+func ChargeCard(ctx context.Context, stock StockResult) (ChargeResult, error) {
 	fmt.Printf("ChargeCard: %s available=%v\n", stock.Item, stock.Available)
-	return ChargeResult{Charged: stock.Available, Amount: 100}
+	return ChargeResult{Charged: stock.Available, Amount: 100}, nil
 }
 
-func Ship(ctx context.Context, charge ChargeResult) string {
+func Ship(ctx context.Context, charge ChargeResult) (string, error) {
 	fmt.Printf("Ship: charged=%v amount=%d\n", charge.Charged, charge.Amount)
-	return "TRACK-12345"
+	return "TRACK-12345", nil
 }
