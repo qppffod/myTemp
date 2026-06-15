@@ -21,7 +21,10 @@ message StartWorkflowRequest {
 }
 message StartWorkflowResponse { string run_id = 1; }
 
-message PollWorkflowTaskRequest  { string task_queue = 1; }
+message PollWorkflowTaskRequest  { 
+    string task_queue = 1;
+    string lease_owner = 2;
+}
 message PollWorkflowTaskResponse {
     int64  task_id       = 1;
     string workflow_id   = 2;
@@ -30,7 +33,10 @@ message PollWorkflowTaskResponse {
     repeated HistoryEvent history = 5;
 }
 
-message PollActivityTaskRequest  { string task_queue = 1; }
+message PollActivityTaskRequest  { 
+    string task_queue = 1;
+    string lease_owner = 2; 
+}
 message PollActivityTaskResponse {
     int64  task_id       = 1;
     string workflow_id   = 2;

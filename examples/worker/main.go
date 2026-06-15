@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 
@@ -49,12 +50,13 @@ func TestWorkflow(c *workflow.Context, order PizzaOrder) error {
 	var stock StockResult
 	err := workflow.ExecuteActivity(c, "CheckStock", order).Get(&stock)
 	if err != nil {
-		return err
+		log.Printf("stock check failed, but continuing: %v", err)
+		return nil
 	}
 	if stock.Available {
 		log.Printf("Stock is correct: %s", stock.Item)
 	} else {
-		return fmt.Errorf("out of stock")
+		return fmt.Errorf("not availabe")
 	}
 
 	// A -> B: CheckStock's typed result is the input to ChargeCard.
@@ -92,7 +94,8 @@ func CheckStock(ctx context.Context, order PizzaOrder) (StockResult, error) {
 	if len(order.Items) > 0 {
 		item = order.Items[0]
 	}
-	return StockResult{Available: true, Item: item}, nil
+	// return StockResult{Available: true, Item: item}, nil
+	return StockResult{Available: false, Item: item}, errors.New("out of stock")
 }
 
 func ChargeCard(ctx context.Context, stock StockResult) (ChargeResult, error) {

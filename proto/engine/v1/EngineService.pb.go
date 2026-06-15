@@ -136,6 +136,7 @@ func (x *StartWorkflowResponse) GetRunId() string {
 type PollWorkflowTaskRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TaskQueue     string                 `protobuf:"bytes,1,opt,name=task_queue,json=taskQueue,proto3" json:"task_queue,omitempty"`
+	LeaseOwner    string                 `protobuf:"bytes,2,opt,name=lease_owner,json=leaseOwner,proto3" json:"lease_owner,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -173,6 +174,13 @@ func (*PollWorkflowTaskRequest) Descriptor() ([]byte, []int) {
 func (x *PollWorkflowTaskRequest) GetTaskQueue() string {
 	if x != nil {
 		return x.TaskQueue
+	}
+	return ""
+}
+
+func (x *PollWorkflowTaskRequest) GetLeaseOwner() string {
+	if x != nil {
+		return x.LeaseOwner
 	}
 	return ""
 }
@@ -256,6 +264,7 @@ func (x *PollWorkflowTaskResponse) GetHistory() []*HistoryEvent {
 type PollActivityTaskRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TaskQueue     string                 `protobuf:"bytes,1,opt,name=task_queue,json=taskQueue,proto3" json:"task_queue,omitempty"`
+	LeaseOwner    string                 `protobuf:"bytes,2,opt,name=lease_owner,json=leaseOwner,proto3" json:"lease_owner,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -293,6 +302,13 @@ func (*PollActivityTaskRequest) Descriptor() ([]byte, []int) {
 func (x *PollActivityTaskRequest) GetTaskQueue() string {
 	if x != nil {
 		return x.TaskQueue
+	}
+	return ""
+}
+
+func (x *PollActivityTaskRequest) GetLeaseOwner() string {
+	if x != nil {
+		return x.LeaseOwner
 	}
 	return ""
 }
@@ -858,20 +874,24 @@ const file_engine_v1_EngineService_proto_rawDesc = "" +
 	"task_queue\x18\x03 \x01(\tR\ttaskQueue\x12\x14\n" +
 	"\x05input\x18\x04 \x01(\fR\x05input\".\n" +
 	"\x15StartWorkflowResponse\x12\x15\n" +
-	"\x06run_id\x18\x01 \x01(\tR\x05runId\"8\n" +
+	"\x06run_id\x18\x01 \x01(\tR\x05runId\"Y\n" +
 	"\x17PollWorkflowTaskRequest\x12\x1d\n" +
 	"\n" +
-	"task_queue\x18\x01 \x01(\tR\ttaskQueue\"\xc3\x01\n" +
+	"task_queue\x18\x01 \x01(\tR\ttaskQueue\x12\x1f\n" +
+	"\vlease_owner\x18\x02 \x01(\tR\n" +
+	"leaseOwner\"\xc3\x01\n" +
 	"\x18PollWorkflowTaskResponse\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\x03R\x06taskId\x12\x1f\n" +
 	"\vworkflow_id\x18\x02 \x01(\tR\n" +
 	"workflowId\x12\x15\n" +
 	"\x06run_id\x18\x03 \x01(\tR\x05runId\x12#\n" +
 	"\rworkflow_type\x18\x04 \x01(\tR\fworkflowType\x121\n" +
-	"\ahistory\x18\x05 \x03(\v2\x17.engine.v1.HistoryEventR\ahistory\"8\n" +
+	"\ahistory\x18\x05 \x03(\v2\x17.engine.v1.HistoryEventR\ahistory\"Y\n" +
 	"\x17PollActivityTaskRequest\x12\x1d\n" +
 	"\n" +
-	"task_queue\x18\x01 \x01(\tR\ttaskQueue\"\xa6\x01\n" +
+	"task_queue\x18\x01 \x01(\tR\ttaskQueue\x12\x1f\n" +
+	"\vlease_owner\x18\x02 \x01(\tR\n" +
+	"leaseOwner\"\xa6\x01\n" +
 	"\x18PollActivityTaskResponse\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\x03R\x06taskId\x12\x1f\n" +
 	"\vworkflow_id\x18\x02 \x01(\tR\n" +

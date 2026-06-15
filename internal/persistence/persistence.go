@@ -3,6 +3,7 @@ package persistence
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -129,8 +130,14 @@ func (p *Persistence) InsertTask(ctx context.Context, tx pgx.Tx, t Task) error {
 	return err
 }
 
-func (p *Persistence) PollTask(ctx context.Context, queue, taskType string) (*Task, error) {
-	row := p.db.QueryRow(ctx,
+func (p *Persistence) PollTask(ctx context.Context, queue, taskType, leaseOwner string) (*Task, error) {
+	tx, err := p.BeginTx(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	row := tx.QueryRow(ctx,
 		`SELECT id, task_queue, task_type, workflow_type, workflow_id, run_id,
 				scheduled_event_id, input, activity_name, activity_index,
 				visibility_time, lease_owner, lease_expires_at
@@ -146,7 +153,7 @@ func (p *Persistence) PollTask(ctx context.Context, queue, taskType string) (*Ta
 	)
 
 	var t Task
-	err := row.Scan(
+	err = row.Scan(
 		&t.ID,
 		&t.TaskQueue,
 		&t.TaskType,
@@ -164,9 +171,22 @@ func (p *Persistence) PollTask(ctx context.Context, queue, taskType string) (*Ta
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil // no task availabe, not an error
 	}
-
 	if err != nil {
 		return nil, err
+	}
+
+	if _, err := tx.Exec(ctx,
+		`UPDATE tasks
+		 SET lease_owner = $1,
+		 	lease_expires_at = now() + interval '30 seconds'
+		 WHERE id = $2`,
+		leaseOwner, t.ID,
+	); err != nil {
+		return nil, fmt.Errorf("Set lease_owner: %w", err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("commit transaction: %w", err)
 	}
 
 	return &t, nil
@@ -214,17 +234,6 @@ func (p *Persistence) CompleteTask(ctx context.Context, tx pgx.Tx, taskID int64)
 		`DELETE FROM tasks
 		 WHERE id = $1`,
 		taskID,
-	)
-	return err
-}
-
-func (p *Persistence) LeaseTask(ctx context.Context, taskID int64, leaseOwner string) error {
-	_, err := p.db.Exec(ctx,
-		`UPDATE tasks
-		 SET lease_owner = $1,
-		 	lease_expires_at = now() + interval '30 seconds'
-		 WHERE id = $2`,
-		leaseOwner, taskID,
 	)
 	return err
 }

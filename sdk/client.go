@@ -46,8 +46,11 @@ func (c *Client) StartNewWorkflow(ctx context.Context, workflowID, workflowType,
 	return resp.RunId, nil
 }
 
-func (c *Client) PollWorkflowTask(ctx context.Context, queue string) (*pb.PollWorkflowTaskResponse, error) {
-	return c.engine.PollWorkflowTask(ctx, &pb.PollWorkflowTaskRequest{TaskQueue: queue})
+func (c *Client) PollWorkflowTask(ctx context.Context, queue, leaseOwner string) (*pb.PollWorkflowTaskResponse, error) {
+	return c.engine.PollWorkflowTask(ctx, &pb.PollWorkflowTaskRequest{
+		TaskQueue:  queue,
+		LeaseOwner: leaseOwner,
+	})
 }
 
 func (c *Client) RespondWorkflowTaskCompleted(ctx context.Context, taskID int64, workflowID, runID string, commands []*pb.Command) error {
@@ -60,8 +63,11 @@ func (c *Client) RespondWorkflowTaskCompleted(ctx context.Context, taskID int64,
 	return err
 }
 
-func (c *Client) PollActivityTask(ctx context.Context, queue string) (*pb.PollActivityTaskResponse, error) {
-	return c.engine.PollActivityTask(ctx, &pb.PollActivityTaskRequest{TaskQueue: queue})
+func (c *Client) PollActivityTask(ctx context.Context, queue, leaseOwner string) (*pb.PollActivityTaskResponse, error) {
+	return c.engine.PollActivityTask(ctx, &pb.PollActivityTaskRequest{
+		TaskQueue:  queue,
+		LeaseOwner: leaseOwner,
+	})
 }
 
 func (c *Client) RespondActivityTaskCompleted(ctx context.Context, taskID int64, workflowID, runID string, result []byte) error {

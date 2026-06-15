@@ -11,11 +11,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	pb "github.com/qppffod/myTemp/proto/engine/v1"
 	"github.com/qppffod/myTemp/sdk/workflow"
 )
 
 type Worker struct {
+	id     string
 	client *Client
 	queue  string
 
@@ -25,6 +27,7 @@ type Worker struct {
 
 func NewWorker(c *Client, queue string) *Worker {
 	return &Worker{
+		id:                uuid.New().String(),
 		client:            c,
 		queue:             queue,
 		workflowFunctions: make(map[string]reflect.Value),
@@ -88,9 +91,7 @@ func (w *Worker) pollWorkflowTasks(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		default:
-			resp, err := w.client.engine.PollWorkflowTask(ctx, &pb.PollWorkflowTaskRequest{
-				TaskQueue: w.queue,
-			})
+			resp, err := w.client.PollWorkflowTask(ctx, w.queue, w.id)
 			if err != nil || resp.TaskId == 0 {
 				time.Sleep(time.Second)
 				continue
@@ -181,9 +182,7 @@ func (w *Worker) pollActivityTasks(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		default:
-			resp, err := w.client.engine.PollActivityTask(ctx, &pb.PollActivityTaskRequest{
-				TaskQueue: w.queue,
-			})
+			resp, err := w.client.PollActivityTask(ctx, w.queue, w.id)
 			if err != nil || resp.TaskId == 0 {
 				time.Sleep(time.Second)
 				continue

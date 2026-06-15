@@ -30,7 +30,7 @@ func (s *Handler) StartWorkflow(ctx context.Context, req *pb.StartWorkflowReques
 }
 
 func (h *Handler) PollWorkflowTask(ctx context.Context, req *pb.PollWorkflowTaskRequest) (*pb.PollWorkflowTaskResponse, error) {
-	task, err := h.persistence.PollTask(ctx, req.TaskQueue, "workflow")
+	task, err := h.persistence.PollTask(ctx, req.TaskQueue, "workflow", req.LeaseOwner)
 	if err != nil || task == nil {
 		return &pb.PollWorkflowTaskResponse{}, err
 	}
@@ -55,7 +55,7 @@ func (h *Handler) RespondWorkflowTaskCompleted(ctx context.Context, req *pb.Resp
 }
 
 func (h *Handler) PollActivityTask(ctx context.Context, req *pb.PollActivityTaskRequest) (*pb.PollActivityTaskResponse, error) {
-	task, err := h.persistence.PollTask(ctx, req.TaskQueue, "activity")
+	task, err := h.persistence.PollTask(ctx, req.TaskQueue, "activity", req.LeaseOwner)
 	if err != nil || task == nil {
 		return &pb.PollActivityTaskResponse{}, err
 	}
