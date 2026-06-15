@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/qppffod/myTemp/internal/frontend"
@@ -42,5 +43,24 @@ func main() {
 
 	handler := grpcHandlers.New(p, h)
 
-	frontend.Start(ctx, handler)
+	go reclaimLoop(ctx, p)
+
+	if err := frontend.Start(ctx, handler); err != nil {
+		log.Fatalf("server: %v", err)
+	}
+}
+
+func reclaimLoop(ctx context.Context, p *persistence.Persistence) {
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			if err := p.ReclaimExpiredLeases(ctx); err != nil {
+				log.Printf("reclaim leases: %v", err)
+			}
+		}
+	}
 }

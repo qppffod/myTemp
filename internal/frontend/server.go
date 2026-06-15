@@ -2,6 +2,7 @@ package frontend
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net"
 	"os"
@@ -14,13 +15,13 @@ import (
 
 const grpcAddr = ":7233"
 
-func Start(ctx context.Context, handler *grpcHandlers.Handler) {
+func Start(ctx context.Context, handler *grpcHandlers.Handler) error {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
 	lis, err := net.Listen("tcp", grpcAddr)
 	if err != nil {
 		logger.Error("listen failed", "addr", grpcAddr, "err", err)
-		os.Exit(1)
+		return fmt.Errorf("listen on %s: %w", grpcAddr, err)
 	}
 
 	srv := grpc.NewServer()
@@ -36,6 +37,8 @@ func Start(ctx context.Context, handler *grpcHandlers.Handler) {
 	logger.Info("engine listening", "addr", grpcAddr)
 	if err := srv.Serve(lis); err != nil {
 		logger.Error("serve failed", "err", err)
-		os.Exit(1)
+		return fmt.Errorf("serve: %w", err)
 	}
+
+	return nil
 }

@@ -229,6 +229,15 @@ func (p *Persistence) GetTask(ctx context.Context, taskID int64) (*Task, error) 
 	return &t, nil
 }
 
+func (p *Persistence) ReclaimExpiredLeases(ctx context.Context) error {
+	_, err := p.db.Exec(ctx,
+		`UPDATE tasks
+		 SET lease_owner = NULL,
+		 	 lease_expires_at = NULL
+		 WHERE lease_owner IS NOT NULL AND lease_expires_at < now()`)
+	return err
+}
+
 func (p *Persistence) CompleteTask(ctx context.Context, tx pgx.Tx, taskID int64) error {
 	_, err := tx.Exec(ctx,
 		`DELETE FROM tasks
