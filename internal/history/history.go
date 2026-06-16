@@ -3,6 +3,7 @@ package history
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/qppffod/myTemp/internal/persistence"
@@ -116,6 +117,8 @@ func (h *History) CompleteWorkflowTask(ctx context.Context, taskID int64, workfl
 				ScheduledEventID: nextEventID,
 				ActivityName:     cmd.ActivityName,
 				ActivityIndex:    cmd.ActivityIndex,
+				Attempt:          1,
+				MaxAttempts:      DefaultRetryPolicy.MaxAttempts,
 				Input:            cmd.Input,
 			}); err != nil {
 				return err
@@ -228,6 +231,34 @@ func (h *History) FailActivityTask(ctx context.Context, taskID int64, workflowID
 		return fmt.Errorf("get task: %w", err)
 	}
 
+	if task.Attempt < task.MaxAttempts {
+
+		delay := netxtRetryDelay(DefaultRetryPolicy, task.Attempt)
+
+		if err := h.p.CompleteTask(ctx, tx, taskID); err != nil {
+			return fmt.Errorf("complete failed activity task: %w", err)
+		}
+
+		if err := h.p.InsertTask(ctx, tx, persistence.Task{
+			TaskQueue:        task.TaskQueue,
+			TaskType:         "activity",
+			WorkflowType:     task.WorkflowType,
+			WorkflowID:       task.WorkflowID,
+			RunID:            task.RunID,
+			ScheduledEventID: task.ScheduledEventID, // same scheduling event
+			ActivityName:     task.ActivityName,
+			ActivityIndex:    task.ActivityIndex,
+			Input:            task.Input,
+			Attempt:          task.Attempt + 1,
+			MaxAttempts:      task.MaxAttempts,
+			VisibilityTime:   time.Now().Add(delay), // ← the backoff
+		}); err != nil {
+			return fmt.Errorf("reschedule activity: %w", err)
+		}
+
+		return tx.Commit(ctx)
+	}
+
 	events, err := h.p.GetEvents(ctx, workflowID, runID)
 	if err != nil {
 		return fmt.Errorf("get events: %w", err)
@@ -243,11 +274,11 @@ func (h *History) FailActivityTask(ctx context.Context, taskID int64, workflowID
 		ActivityIndex: task.ActivityIndex,
 		Data:          []byte(errMsg),
 	}); err != nil {
-		return fmt.Errorf("insert activity failed event: %w", err)
+		return fmt.Errorf("insert failed activity event: %w", err)
 	}
 
 	if err := h.p.CompleteTask(ctx, tx, taskID); err != nil {
-		return fmt.Errorf("complete activity task: %w", err)
+		return fmt.Errorf("complete failed activity task: %w", err)
 	}
 
 	exec, err := h.p.GetWorkflowExecution(ctx, workflowID, runID)
