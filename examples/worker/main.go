@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/qppffod/myTemp/sdk"
 	"github.com/qppffod/myTemp/sdk/workflow"
@@ -50,8 +51,7 @@ func TestWorkflow(c *workflow.Context, order PizzaOrder) error {
 	var stock StockResult
 	err := workflow.ExecuteActivity(c, "CheckStock", order).Get(&stock)
 	if err != nil {
-		log.Printf("stock check failed, but continuing: %v", err)
-		return nil
+		return fmt.Errorf("out of stock: %w", err)
 	}
 	if stock.Available {
 		log.Printf("Stock is correct: %s", stock.Item)
@@ -88,19 +88,28 @@ func TestWorkflow(c *workflow.Context, order PizzaOrder) error {
 	// f2.Get(nil)
 }
 
+var chargeAttempts int
+
 func CheckStock(ctx context.Context, order PizzaOrder) (StockResult, error) {
 	fmt.Printf("CheckStock: order %d\n", order.OrderID)
 	item := ""
 	if len(order.Items) > 0 {
 		item = order.Items[0]
 	}
-	// return StockResult{Available: true, Item: item}, nil
-	return StockResult{Available: false, Item: item}, errors.New("out of stock")
+
+	return StockResult{Available: true, Item: item}, nil
 }
 
 func ChargeCard(ctx context.Context, stock StockResult) (ChargeResult, error) {
-	fmt.Printf("ChargeCard: %s available=%v\n", stock.Item, stock.Available)
-	return ChargeResult{Charged: stock.Available, Amount: 100}, nil
+	chargeAttempts++
+	log.Printf("ChargeCard attempt %d at %s", chargeAttempts, time.Now().Format("15:04:05"))
+
+	if chargeAttempts < 3 {
+		return ChargeResult{}, errors.New("flaky API 503")
+	}
+
+	log.Printf("ChargeCard succeeded on attempt %d", chargeAttempts)
+	return ChargeResult{Charged: true, Amount: 100}, nil
 }
 
 func Ship(ctx context.Context, charge ChargeResult) (string, error) {
