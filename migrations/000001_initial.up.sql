@@ -24,19 +24,21 @@ CREATE TABLE events (
 );
 
 CREATE TABLE tasks (
-    id              BIGSERIAL PRIMARY KEY,
-    task_queue      TEXT NOT NULL,
-    task_type       TEXT NOT NULL,           
-    workflow_type   TEXT NOT NULL,
-    workflow_id     TEXT NOT NULL,
-    run_id          UUID NOT NULL,
-    scheduled_event_id BIGINT NOT NULL,
-    input           BYTEA,
-    activity_name   TEXT,
-    activity_index  INT NOT NULL DEFAULT 0,   
-    visibility_time TIMESTAMPTZ NOT NULL DEFAULT now(),
-    lease_owner     TEXT,
-    lease_expires_at TIMESTAMPTZ
+    id                  BIGSERIAL PRIMARY KEY,
+    task_queue          TEXT NOT NULL,
+    task_type           TEXT NOT NULL,           
+    workflow_type       TEXT NOT NULL,
+    workflow_id         TEXT NOT NULL,
+    run_id              UUID NOT NULL,
+    scheduled_event_id  BIGINT NOT NULL,
+    input               BYTEA,
+    activity_name       TEXT,
+    activity_index      INT NOT NULL DEFAULT 0,
+    attempt             INT NOT NULL DEFAULT 1,
+    max_attempts        INT NOT NULL DEFAULT 3,
+    visibility_time     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    lease_owner         TEXT,
+    lease_expires_at    TIMESTAMPTZ
 );
 
 CREATE INDEX idx_tasks_poll ON tasks (task_queue, visibility_time)

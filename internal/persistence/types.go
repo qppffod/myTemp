@@ -35,6 +35,8 @@ type Task struct {
 	Input            []byte
 	ActivityName     string
 	ActivityIndex    int32
+	Attempt          int32
+	MaxAttempts      int32
 	VisibilityTime   time.Time
 	LeaseOwner       *string
 	LeaseExpiresAt   *time.Time
