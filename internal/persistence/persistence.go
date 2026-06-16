@@ -252,6 +252,15 @@ func (p *Persistence) CompleteTask(ctx context.Context, tx pgx.Tx, taskID int64)
 	return err
 }
 
+func (p *Persistence) InsertTimer(ctx context.Context, tx pgx.Tx, t Timer) error {
+	_, err := tx.Exec(ctx,
+		`INSERT INTO timers (workflow_id, run_id, timer_index, fire_at)
+		 VALUES ($1, $2, $3, $4)`,
+		t.WorkflowID, t.RunID, t.TimerIndex, t.FireAt,
+	)
+	return err
+}
+
 func (p *Persistence) BeginTx(ctx context.Context) (pgx.Tx, error) {
 	return p.db.Begin(ctx)
 }

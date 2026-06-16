@@ -41,3 +41,12 @@ type Task struct {
 	LeaseOwner       *string
 	LeaseExpiresAt   *time.Time
 }
+
+type Timer struct {
+	ID         int64
+	WorkflowID string
+	RunID      string
+	TimerIndex int32
+	FireAt     time.Time
+	Fired      bool
+}
