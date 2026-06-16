@@ -43,3 +43,15 @@ CREATE TABLE tasks (
 
 CREATE INDEX idx_tasks_poll ON tasks (task_queue, visibility_time)
     WHERE lease_owner IS NULL;
+
+
+CREATE TABLE timers (
+    id          BIGSERIAL PRIMARY KEY,
+    workflow_id TEXT NOT NULL,
+    run_id      UUID NOT NULL,
+    timer_index INT NOT NULL,
+    fire_at     TIMESTAMPTZ NOT NULL,
+    fired       BOOLEAN NOT NULL DEFAULT false
+);
+
+CREATE INDEX idx_timers_due ON timers (fire_at) WHERE fired = false;
