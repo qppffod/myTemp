@@ -708,6 +708,7 @@ type HistoryEvent struct {
 	ActivityName  string                 `protobuf:"bytes,3,opt,name=activity_name,json=activityName,proto3" json:"activity_name,omitempty"`
 	ActivityIndex int32                  `protobuf:"varint,4,opt,name=activity_index,json=activityIndex,proto3" json:"activity_index,omitempty"`
 	Data          []byte                 `protobuf:"bytes,5,opt,name=data,proto3" json:"data,omitempty"`
+	TimerIndex    int32                  `protobuf:"varint,6,opt,name=timer_index,json=timerIndex,proto3" json:"timer_index,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -777,6 +778,13 @@ func (x *HistoryEvent) GetData() []byte {
 	return nil
 }
 
+func (x *HistoryEvent) GetTimerIndex() int32 {
+	if x != nil {
+		return x.TimerIndex
+	}
+	return 0
+}
+
 type Command struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Type          string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"` // "ScheduleActivity" or "CompleteWorkflow"
@@ -785,6 +793,8 @@ type Command struct {
 	TaskQueue     string                 `protobuf:"bytes,4,opt,name=task_queue,json=taskQueue,proto3" json:"task_queue,omitempty"`
 	Input         []byte                 `protobuf:"bytes,5,opt,name=input,proto3" json:"input,omitempty"`
 	Data          []byte                 `protobuf:"bytes,6,opt,name=data,proto3" json:"data,omitempty"`
+	TimerIndex    int32                  `protobuf:"varint,7,opt,name=timer_index,json=timerIndex,proto3" json:"timer_index,omitempty"`
+	DurationMs    int64                  `protobuf:"varint,8,opt,name=duration_ms,json=durationMs,proto3" json:"duration_ms,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -861,6 +871,20 @@ func (x *Command) GetData() []byte {
 	return nil
 }
 
+func (x *Command) GetTimerIndex() int32 {
+	if x != nil {
+		return x.TimerIndex
+	}
+	return 0
+}
+
+func (x *Command) GetDurationMs() int64 {
+	if x != nil {
+		return x.DurationMs
+	}
+	return 0
+}
+
 var File_engine_v1_EngineService_proto protoreflect.FileDescriptor
 
 const file_engine_v1_EngineService_proto_rawDesc = "" +
@@ -919,14 +943,16 @@ const file_engine_v1_EngineService_proto_rawDesc = "" +
 	"workflowId\x12\x15\n" +
 	"\x06run_id\x18\x03 \x01(\tR\x05runId\x12\x14\n" +
 	"\x05error\x18\x04 \x01(\tR\x05error\"#\n" +
-	"!RespondActivityTaskFailedResponse\"\xa8\x01\n" +
+	"!RespondActivityTaskFailedResponse\"\xc9\x01\n" +
 	"\fHistoryEvent\x12\x19\n" +
 	"\bevent_id\x18\x01 \x01(\x03R\aeventId\x12\x1d\n" +
 	"\n" +
 	"event_type\x18\x02 \x01(\tR\teventType\x12#\n" +
 	"\ractivity_name\x18\x03 \x01(\tR\factivityName\x12%\n" +
 	"\x0eactivity_index\x18\x04 \x01(\x05R\ractivityIndex\x12\x12\n" +
-	"\x04data\x18\x05 \x01(\fR\x04data\"\xb2\x01\n" +
+	"\x04data\x18\x05 \x01(\fR\x04data\x12\x1f\n" +
+	"\vtimer_index\x18\x06 \x01(\x05R\n" +
+	"timerIndex\"\xf4\x01\n" +
 	"\aCommand\x12\x12\n" +
 	"\x04type\x18\x01 \x01(\tR\x04type\x12#\n" +
 	"\ractivity_name\x18\x02 \x01(\tR\factivityName\x12%\n" +
@@ -934,7 +960,11 @@ const file_engine_v1_EngineService_proto_rawDesc = "" +
 	"\n" +
 	"task_queue\x18\x04 \x01(\tR\ttaskQueue\x12\x14\n" +
 	"\x05input\x18\x05 \x01(\fR\x05input\x12\x12\n" +
-	"\x04data\x18\x06 \x01(\fR\x04data2\x97\x05\n" +
+	"\x04data\x18\x06 \x01(\fR\x04data\x12\x1f\n" +
+	"\vtimer_index\x18\a \x01(\x05R\n" +
+	"timerIndex\x12\x1f\n" +
+	"\vduration_ms\x18\b \x01(\x03R\n" +
+	"durationMs2\x97\x05\n" +
 	"\rEngineService\x12R\n" +
 	"\rStartWorkflow\x12\x1f.engine.v1.StartWorkflowRequest\x1a .engine.v1.StartWorkflowResponse\x12[\n" +
 	"\x10PollWorkflowTask\x12\".engine.v1.PollWorkflowTaskRequest\x1a#.engine.v1.PollWorkflowTaskResponse\x12\x7f\n" +

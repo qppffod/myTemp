@@ -88,6 +88,8 @@ func unmarshalCommands(commands []*pb.Command) []history.Command {
 			ActivityIndex: c.ActivityIndex,
 			TaskQueue:     c.TaskQueue,
 			Input:         c.Input,
+			TimerIndex:    c.TimerIndex,
+			DurationMs:    c.DurationMs,
 		}
 	}
 	return result
@@ -101,6 +103,7 @@ func marshalEvents(events []persistence.Event) []*pb.HistoryEvent {
 			EventType:     e.EventType,
 			ActivityName:  e.ActivityName,
 			ActivityIndex: e.ActivityIndex,
+			TimerIndex:    e.TimerIndex,
 			Data:          e.Data,
 		}
 	}

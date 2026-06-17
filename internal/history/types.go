@@ -6,4 +6,6 @@ type Command struct {
 	TaskQueue     string
 	Input         []byte
 	ActivityIndex int32
+	TimerIndex    int32
+	DurationMs    int64
 }

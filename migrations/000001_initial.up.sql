@@ -19,6 +19,7 @@ CREATE TABLE events (
     event_type      TEXT NOT NULL,
     activity_name   TEXT NOT NULL DEFAULT '',
     activity_index  INT NOT NULL DEFAULT 0,
+    timer_index     INT NOT NULL DEFAULT 0,
     data            BYTEA NOT NULL,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );

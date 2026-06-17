@@ -48,7 +48,7 @@ func TestHandler(c *sdk.Client) http.HandlerFunc {
 			return
 		}
 
-		runID, err := c.StartNewWorkflow(r.Context(), "test-order22", "TestWorkflow", "test", orderBytes)
+		runID, err := c.StartNewWorkflow(r.Context(), "test-order22", "TestTimerWorkflow", "test", orderBytes)
 		if err != nil {
 			w.Write([]byte(fmt.Sprintf("Failed to get runID from StartWorkflow: %s", err.Error())))
 			return

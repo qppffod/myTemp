@@ -22,6 +22,7 @@ func main() {
 	worker := sdk.NewWorker(client, "test")
 
 	worker.RegisterWorkflow(TestWorkflow)
+	worker.RegisterWorkflow(TestTimerWorkflow)
 	worker.RegisterActivity(CheckStock)
 	worker.RegisterActivity(ChargeCard)
 	worker.RegisterActivity(Ship)
@@ -43,6 +44,24 @@ type StockResult struct {
 type ChargeResult struct {
 	Charged bool
 	Amount  int
+}
+
+func TestTimerWorkflow(c *workflow.Context, order PizzaOrder) error {
+	var stock StockResult
+	err := workflow.ExecuteActivity(c, "CheckStock", order).Get(&stock)
+	if err != nil {
+		return fmt.Errorf("out of stock: %w", err)
+	}
+
+	workflow.Sleep(c, time.Second*30)
+
+	var tracking string
+	err = workflow.ExecuteActivity(c, "Ship", ChargeResult{true, 100}).Get(&tracking)
+	if err != nil {
+		return err
+	}
+	log.Printf("Shipped: %s", tracking)
+	return nil
 }
 
 func TestWorkflow(c *workflow.Context, order PizzaOrder) error {

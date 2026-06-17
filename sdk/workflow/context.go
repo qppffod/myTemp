@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
+	"time"
 
 	pb "github.com/qppffod/myTemp/proto/engine/v1"
 )
@@ -15,6 +16,7 @@ type Context struct {
 	commands          []*pb.Command
 	queue             string
 	activityCallCount int
+	timerCallCount    int
 }
 
 func New(ctx context.Context, history []*pb.HistoryEvent, queue string) *Context {
@@ -117,4 +119,29 @@ func ExecuteActivity(ctx *Context, activityName string, input any) *ActivityFutu
 		activityName: activityName,
 		callIndex:    callIndex,
 	}
+}
+
+func Sleep(ctx *Context, duration time.Duration) {
+	timerIndex := ctx.timerCallCount
+	ctx.timerCallCount++
+
+	for _, event := range ctx.history {
+		if event.EventType == "TimerFired" && event.TimerIndex == int32(timerIndex) {
+			return
+		}
+	}
+
+	for _, event := range ctx.history {
+		if event.EventType == "TimerStarted" && event.TimerIndex == int32(timerIndex) {
+			panic(ErrPendingActivity)
+		}
+	}
+
+	log.Printf("Sleep: setting DurationMs=%d", duration.Milliseconds())
+	ctx.commands = append(ctx.commands, &pb.Command{
+		Type:       "StartTimer",
+		TimerIndex: int32(timerIndex),
+		DurationMs: duration.Milliseconds(),
+	})
+	panic(ErrPendingActivity)
 }

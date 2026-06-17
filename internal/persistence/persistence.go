@@ -69,16 +69,16 @@ func (p *Persistence) InsertEvent(ctx context.Context, tx pgx.Tx, e Event) error
 		e.Data = []byte{}
 	}
 	_, err := tx.Exec(ctx,
-		`INSERT INTO events (workflow_id, run_id, event_id, event_type, activity_name, activity_index, data)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-		e.WorkflowID, e.RunID, e.EventID, e.EventType, e.ActivityName, e.ActivityIndex, e.Data,
+		`INSERT INTO events (workflow_id, run_id, event_id, event_type, activity_name, activity_index, timer_index, data)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+		e.WorkflowID, e.RunID, e.EventID, e.EventType, e.ActivityName, e.ActivityIndex, e.TimerIndex, e.Data,
 	)
 	return err
 }
 
 func (p *Persistence) GetEvents(ctx context.Context, workflowID, runID string) ([]Event, error) {
 	rows, err := p.db.Query(ctx,
-		`SELECT id, workflow_id, run_id, event_id, event_type, activity_name, activity_index, data, created_at
+		`SELECT id, workflow_id, run_id, event_id, event_type, activity_name, activity_index, timer_index, data, created_at
 		 FROM events
 		 WHERE workflow_id = $1 AND run_id = $2
 		 ORDER BY event_id`,
@@ -102,6 +102,7 @@ func (p *Persistence) GetEvents(ctx context.Context, workflowID, runID string) (
 			&e.EventType,
 			&e.ActivityName,
 			&e.ActivityIndex,
+			&e.TimerIndex,
 			&e.Data,
 			&e.CreatedAt,
 		); err != nil {
@@ -257,6 +258,56 @@ func (p *Persistence) InsertTimer(ctx context.Context, tx pgx.Tx, t Timer) error
 		`INSERT INTO timers (workflow_id, run_id, timer_index, fire_at)
 		 VALUES ($1, $2, $3, $4)`,
 		t.WorkflowID, t.RunID, t.TimerIndex, t.FireAt,
+	)
+	return err
+}
+
+func (p *Persistence) GetDueTimers(ctx context.Context, tx pgx.Tx) ([]Timer, error) {
+	rows, err := tx.Query(ctx,
+		`SELECT id, workflow_id, run_id, timer_index, fire_at, fired
+		 FROM timers
+		 WHERE fire_at <= now()
+		 	AND fired = false
+		 FOR UPDATE SKIP LOCKED
+		 LIMIT 100`,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("GetDueTimers: %w", err)
+	}
+	defer rows.Close()
+
+	var timers []Timer
+
+	for rows.Next() {
+		var t Timer
+
+		if err := rows.Scan(
+			&t.ID,
+			&t.WorkflowID,
+			&t.RunID,
+			&t.TimerIndex,
+			&t.FireAt,
+			&t.Fired,
+		); err != nil {
+			return nil, fmt.Errorf("scan timer: %w", err)
+		}
+
+		timers = append(timers, t)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return timers, nil
+}
+
+func (p *Persistence) MarkTimerFired(ctx context.Context, tx pgx.Tx, timerID int64) error {
+	_, err := tx.Exec(ctx,
+		`UPDATE timers
+		 SET fired = true
+		 WHERE id = $1
+		 	AND fired = false`,
+		timerID,
 	)
 	return err
 }

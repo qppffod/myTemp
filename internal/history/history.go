@@ -3,6 +3,7 @@ package history
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -123,6 +124,30 @@ func (h *History) CompleteWorkflowTask(ctx context.Context, taskID int64, workfl
 			}); err != nil {
 				return err
 			}
+			nextEventID++
+
+		case "StartTimer":
+
+			if err := h.p.InsertEvent(ctx, tx, persistence.Event{
+				WorkflowID: workflowID,
+				RunID:      runID,
+				EventID:    nextEventID,
+				EventType:  "TimerStarted",
+				TimerIndex: cmd.TimerIndex,
+			}); err != nil {
+				return fmt.Errorf("insert timer started: %w", err)
+			}
+			log.Printf("StartTimer: DurationMs=%d", cmd.DurationMs)
+			fireAt := time.Now().Add(time.Duration(cmd.DurationMs) * time.Millisecond)
+			if err := h.p.InsertTimer(ctx, tx, persistence.Timer{
+				WorkflowID: workflowID,
+				RunID:      runID,
+				TimerIndex: cmd.TimerIndex,
+				FireAt:     fireAt,
+			}); err != nil {
+				return fmt.Errorf("insert timer: %w", err)
+			}
+
 			nextEventID++
 
 		case "CompleteWorkflow":
@@ -295,6 +320,53 @@ func (h *History) FailActivityTask(ctx context.Context, taskID int64, workflowID
 		ScheduledEventID: nextEventID,
 	}); err != nil {
 		return fmt.Errorf("insert workflow task: %w", err)
+	}
+
+	return tx.Commit(ctx)
+}
+
+func (h *History) ScanTimers(ctx context.Context) error {
+	tx, err := h.p.BeginTx(ctx)
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	dueTimers, err := h.p.GetDueTimers(ctx, tx)
+	if err != nil {
+		return fmt.Errorf("GetDueTimers: %w", err)
+	}
+
+	for _, timer := range dueTimers {
+
+		events, _ := h.p.GetEvents(ctx, timer.WorkflowID, timer.RunID)
+		nextEventID := int64(len(events)) + 1
+
+		if err := h.p.InsertEvent(ctx, tx, persistence.Event{
+			WorkflowID: timer.WorkflowID,
+			RunID:      timer.RunID,
+			EventID:    nextEventID,
+			EventType:  "TimerFired",
+			TimerIndex: timer.TimerIndex,
+		}); err != nil {
+			return err
+		}
+
+		if err := h.p.MarkTimerFired(ctx, tx, timer.ID); err != nil {
+			return err
+		}
+
+		exec, _ := h.p.GetWorkflowExecution(ctx, timer.WorkflowID, timer.RunID)
+		if err := h.p.InsertTask(ctx, tx, persistence.Task{
+			TaskQueue:        exec.TaskQueue,
+			TaskType:         "workflow",
+			WorkflowType:     exec.WorkflowType,
+			WorkflowID:       timer.WorkflowID,
+			RunID:            timer.RunID,
+			ScheduledEventID: nextEventID,
+		}); err != nil {
+			return err
+		}
 	}
 
 	return tx.Commit(ctx)

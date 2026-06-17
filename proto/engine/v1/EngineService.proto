@@ -71,11 +71,12 @@ message RespondActivityTaskFailedResponse {}
 
 
 message HistoryEvent {
-    int64  event_id   = 1;
-    string event_type = 2;
+    int64  event_id      = 1;
+    string event_type    = 2;
     string activity_name = 3;
     int32 activity_index = 4;
-    bytes  data       = 5;
+    bytes  data          = 5;
+    int32 timer_index    = 6;
 }
 
 message Command {
@@ -85,4 +86,6 @@ message Command {
     string task_queue    = 4;
     bytes  input         = 5;
     bytes  data          = 6;
+    int32 timer_index    = 7;
+    int64 duration_ms    = 8;
 }

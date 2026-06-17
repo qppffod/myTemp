@@ -20,6 +20,7 @@ type Event struct {
 	EventType     string
 	ActivityName  string
 	ActivityIndex int32
+	TimerIndex    int32
 	Data          []byte
 	CreatedAt     time.Time
 }

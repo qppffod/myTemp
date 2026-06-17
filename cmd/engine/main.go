@@ -44,6 +44,7 @@ func main() {
 	handler := grpcHandlers.New(p, h)
 
 	go reclaimLoop(ctx, p)
+	go scanTimers(ctx, h)
 
 	if err := frontend.Start(ctx, handler); err != nil {
 		log.Fatalf("server: %v", err)
@@ -60,6 +61,21 @@ func reclaimLoop(ctx context.Context, p *persistence.Persistence) {
 		case <-ticker.C:
 			if err := p.ReclaimExpiredLeases(ctx); err != nil {
 				log.Printf("reclaim leases: %v", err)
+			}
+		}
+	}
+}
+
+func scanTimers(ctx context.Context, h *history.History) {
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			if err := h.ScanTimers(ctx); err != nil {
+				log.Printf("scan timers: %v", err)
 			}
 		}
 	}
