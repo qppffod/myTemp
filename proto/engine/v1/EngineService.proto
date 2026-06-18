@@ -11,6 +11,7 @@ service EngineService {
     rpc PollActivityTask(PollActivityTaskRequest) returns (PollActivityTaskResponse);
     rpc RespondActivityTaskCompleted(RespondActivityTaskCompletedRequest) returns (RespondActivityTaskCompletedResponse);
     rpc RespondActivityTaskFailed(RespondActivityTaskFailedRequest) returns (RespondActivityTaskFailedResponse);
+    rpc SignalWorkflow(SignalWorkflowRequest) returns (SignalWorkflowResponse);
 }
 
 message StartWorkflowRequest {
@@ -22,7 +23,7 @@ message StartWorkflowRequest {
 message StartWorkflowResponse { string run_id = 1; }
 
 message PollWorkflowTaskRequest  { 
-    string task_queue = 1;
+    string task_queue  = 1;
     string lease_owner = 2;
 }
 message PollWorkflowTaskResponse {
@@ -34,7 +35,7 @@ message PollWorkflowTaskResponse {
 }
 
 message PollActivityTaskRequest  { 
-    string task_queue = 1;
+    string task_queue  = 1;
     string lease_owner = 2; 
 }
 message PollActivityTaskResponse {
@@ -46,29 +47,36 @@ message PollActivityTaskResponse {
 }
 
 message RespondWorkflowTaskCompletedRequest {
-    int64  task_id    = 1;
+    int64  task_id     = 1;
     string workflow_id = 2;
-    string run_id     = 3;
+    string run_id      = 3;
     repeated Command commands = 4;
 }
 message RespondWorkflowTaskCompletedResponse {}
 
 message RespondActivityTaskCompletedRequest {
-    int64  task_id    = 1;
+    int64  task_id     = 1;
     string workflow_id = 2;
-    string run_id     = 3;
-    bytes  result     = 4;
+    string run_id      = 3;
+    bytes  result      = 4;
 }
 message RespondActivityTaskCompletedResponse {}
 
 message RespondActivityTaskFailedRequest {
-    int64 task_id = 1;
+    int64 task_id      = 1;
     string workflow_id = 2;
-    string run_id = 3;
-    string error = 4;
+    string run_id      = 3;
+    string error       = 4;
 }
 message RespondActivityTaskFailedResponse {}
 
+message SignalWorkflowRequest{
+    string workflow_id = 1;
+    string run_id      = 2;
+    string signal_name = 3;
+    bytes  input       = 4;
+}
+message SignalWorkflowResponse{}
 
 message HistoryEvent {
     int64  event_id      = 1;
@@ -77,6 +85,7 @@ message HistoryEvent {
     int32 activity_index = 4;
     bytes  data          = 5;
     int32 timer_index    = 6;
+    string signal_name   = 7;
 }
 
 message Command {

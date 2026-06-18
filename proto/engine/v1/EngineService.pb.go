@@ -701,6 +701,110 @@ func (*RespondActivityTaskFailedResponse) Descriptor() ([]byte, []int) {
 	return file_engine_v1_EngineService_proto_rawDescGZIP(), []int{11}
 }
 
+type SignalWorkflowRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	WorkflowId    string                 `protobuf:"bytes,1,opt,name=workflow_id,json=workflowId,proto3" json:"workflow_id,omitempty"`
+	RunId         string                 `protobuf:"bytes,2,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
+	SignalName    string                 `protobuf:"bytes,3,opt,name=signal_name,json=signalName,proto3" json:"signal_name,omitempty"`
+	Input         []byte                 `protobuf:"bytes,4,opt,name=input,proto3" json:"input,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SignalWorkflowRequest) Reset() {
+	*x = SignalWorkflowRequest{}
+	mi := &file_engine_v1_EngineService_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SignalWorkflowRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SignalWorkflowRequest) ProtoMessage() {}
+
+func (x *SignalWorkflowRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_engine_v1_EngineService_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SignalWorkflowRequest.ProtoReflect.Descriptor instead.
+func (*SignalWorkflowRequest) Descriptor() ([]byte, []int) {
+	return file_engine_v1_EngineService_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *SignalWorkflowRequest) GetWorkflowId() string {
+	if x != nil {
+		return x.WorkflowId
+	}
+	return ""
+}
+
+func (x *SignalWorkflowRequest) GetRunId() string {
+	if x != nil {
+		return x.RunId
+	}
+	return ""
+}
+
+func (x *SignalWorkflowRequest) GetSignalName() string {
+	if x != nil {
+		return x.SignalName
+	}
+	return ""
+}
+
+func (x *SignalWorkflowRequest) GetInput() []byte {
+	if x != nil {
+		return x.Input
+	}
+	return nil
+}
+
+type SignalWorkflowResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SignalWorkflowResponse) Reset() {
+	*x = SignalWorkflowResponse{}
+	mi := &file_engine_v1_EngineService_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SignalWorkflowResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SignalWorkflowResponse) ProtoMessage() {}
+
+func (x *SignalWorkflowResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_engine_v1_EngineService_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SignalWorkflowResponse.ProtoReflect.Descriptor instead.
+func (*SignalWorkflowResponse) Descriptor() ([]byte, []int) {
+	return file_engine_v1_EngineService_proto_rawDescGZIP(), []int{13}
+}
+
 type HistoryEvent struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	EventId       int64                  `protobuf:"varint,1,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
@@ -709,13 +813,14 @@ type HistoryEvent struct {
 	ActivityIndex int32                  `protobuf:"varint,4,opt,name=activity_index,json=activityIndex,proto3" json:"activity_index,omitempty"`
 	Data          []byte                 `protobuf:"bytes,5,opt,name=data,proto3" json:"data,omitempty"`
 	TimerIndex    int32                  `protobuf:"varint,6,opt,name=timer_index,json=timerIndex,proto3" json:"timer_index,omitempty"`
+	SignalName    string                 `protobuf:"bytes,7,opt,name=signal_name,json=signalName,proto3" json:"signal_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *HistoryEvent) Reset() {
 	*x = HistoryEvent{}
-	mi := &file_engine_v1_EngineService_proto_msgTypes[12]
+	mi := &file_engine_v1_EngineService_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -727,7 +832,7 @@ func (x *HistoryEvent) String() string {
 func (*HistoryEvent) ProtoMessage() {}
 
 func (x *HistoryEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_engine_v1_EngineService_proto_msgTypes[12]
+	mi := &file_engine_v1_EngineService_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -740,7 +845,7 @@ func (x *HistoryEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HistoryEvent.ProtoReflect.Descriptor instead.
 func (*HistoryEvent) Descriptor() ([]byte, []int) {
-	return file_engine_v1_EngineService_proto_rawDescGZIP(), []int{12}
+	return file_engine_v1_EngineService_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *HistoryEvent) GetEventId() int64 {
@@ -785,6 +890,13 @@ func (x *HistoryEvent) GetTimerIndex() int32 {
 	return 0
 }
 
+func (x *HistoryEvent) GetSignalName() string {
+	if x != nil {
+		return x.SignalName
+	}
+	return ""
+}
+
 type Command struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Type          string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"` // "ScheduleActivity" or "CompleteWorkflow"
@@ -801,7 +913,7 @@ type Command struct {
 
 func (x *Command) Reset() {
 	*x = Command{}
-	mi := &file_engine_v1_EngineService_proto_msgTypes[13]
+	mi := &file_engine_v1_EngineService_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -813,7 +925,7 @@ func (x *Command) String() string {
 func (*Command) ProtoMessage() {}
 
 func (x *Command) ProtoReflect() protoreflect.Message {
-	mi := &file_engine_v1_EngineService_proto_msgTypes[13]
+	mi := &file_engine_v1_EngineService_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -826,7 +938,7 @@ func (x *Command) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Command.ProtoReflect.Descriptor instead.
 func (*Command) Descriptor() ([]byte, []int) {
-	return file_engine_v1_EngineService_proto_rawDescGZIP(), []int{13}
+	return file_engine_v1_EngineService_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *Command) GetType() string {
@@ -943,7 +1055,15 @@ const file_engine_v1_EngineService_proto_rawDesc = "" +
 	"workflowId\x12\x15\n" +
 	"\x06run_id\x18\x03 \x01(\tR\x05runId\x12\x14\n" +
 	"\x05error\x18\x04 \x01(\tR\x05error\"#\n" +
-	"!RespondActivityTaskFailedResponse\"\xc9\x01\n" +
+	"!RespondActivityTaskFailedResponse\"\x86\x01\n" +
+	"\x15SignalWorkflowRequest\x12\x1f\n" +
+	"\vworkflow_id\x18\x01 \x01(\tR\n" +
+	"workflowId\x12\x15\n" +
+	"\x06run_id\x18\x02 \x01(\tR\x05runId\x12\x1f\n" +
+	"\vsignal_name\x18\x03 \x01(\tR\n" +
+	"signalName\x12\x14\n" +
+	"\x05input\x18\x04 \x01(\fR\x05input\"\x18\n" +
+	"\x16SignalWorkflowResponse\"\xea\x01\n" +
 	"\fHistoryEvent\x12\x19\n" +
 	"\bevent_id\x18\x01 \x01(\x03R\aeventId\x12\x1d\n" +
 	"\n" +
@@ -952,7 +1072,9 @@ const file_engine_v1_EngineService_proto_rawDesc = "" +
 	"\x0eactivity_index\x18\x04 \x01(\x05R\ractivityIndex\x12\x12\n" +
 	"\x04data\x18\x05 \x01(\fR\x04data\x12\x1f\n" +
 	"\vtimer_index\x18\x06 \x01(\x05R\n" +
-	"timerIndex\"\xf4\x01\n" +
+	"timerIndex\x12\x1f\n" +
+	"\vsignal_name\x18\a \x01(\tR\n" +
+	"signalName\"\xf4\x01\n" +
 	"\aCommand\x12\x12\n" +
 	"\x04type\x18\x01 \x01(\tR\x04type\x12#\n" +
 	"\ractivity_name\x18\x02 \x01(\tR\factivityName\x12%\n" +
@@ -964,14 +1086,15 @@ const file_engine_v1_EngineService_proto_rawDesc = "" +
 	"\vtimer_index\x18\a \x01(\x05R\n" +
 	"timerIndex\x12\x1f\n" +
 	"\vduration_ms\x18\b \x01(\x03R\n" +
-	"durationMs2\x97\x05\n" +
+	"durationMs2\xee\x05\n" +
 	"\rEngineService\x12R\n" +
 	"\rStartWorkflow\x12\x1f.engine.v1.StartWorkflowRequest\x1a .engine.v1.StartWorkflowResponse\x12[\n" +
 	"\x10PollWorkflowTask\x12\".engine.v1.PollWorkflowTaskRequest\x1a#.engine.v1.PollWorkflowTaskResponse\x12\x7f\n" +
 	"\x1cRespondWorkflowTaskCompleted\x12..engine.v1.RespondWorkflowTaskCompletedRequest\x1a/.engine.v1.RespondWorkflowTaskCompletedResponse\x12[\n" +
 	"\x10PollActivityTask\x12\".engine.v1.PollActivityTaskRequest\x1a#.engine.v1.PollActivityTaskResponse\x12\x7f\n" +
 	"\x1cRespondActivityTaskCompleted\x12..engine.v1.RespondActivityTaskCompletedRequest\x1a/.engine.v1.RespondActivityTaskCompletedResponse\x12v\n" +
-	"\x19RespondActivityTaskFailed\x12+.engine.v1.RespondActivityTaskFailedRequest\x1a,.engine.v1.RespondActivityTaskFailedResponseB2Z0github.com/you/myengine/proto/engine/v1;enginev1b\x06proto3"
+	"\x19RespondActivityTaskFailed\x12+.engine.v1.RespondActivityTaskFailedRequest\x1a,.engine.v1.RespondActivityTaskFailedResponse\x12U\n" +
+	"\x0eSignalWorkflow\x12 .engine.v1.SignalWorkflowRequest\x1a!.engine.v1.SignalWorkflowResponseB2Z0github.com/you/myengine/proto/engine/v1;enginev1b\x06proto3"
 
 var (
 	file_engine_v1_EngineService_proto_rawDescOnce sync.Once
@@ -985,7 +1108,7 @@ func file_engine_v1_EngineService_proto_rawDescGZIP() []byte {
 	return file_engine_v1_EngineService_proto_rawDescData
 }
 
-var file_engine_v1_EngineService_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_engine_v1_EngineService_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
 var file_engine_v1_EngineService_proto_goTypes = []any{
 	(*StartWorkflowRequest)(nil),                 // 0: engine.v1.StartWorkflowRequest
 	(*StartWorkflowResponse)(nil),                // 1: engine.v1.StartWorkflowResponse
@@ -999,26 +1122,30 @@ var file_engine_v1_EngineService_proto_goTypes = []any{
 	(*RespondActivityTaskCompletedResponse)(nil), // 9: engine.v1.RespondActivityTaskCompletedResponse
 	(*RespondActivityTaskFailedRequest)(nil),     // 10: engine.v1.RespondActivityTaskFailedRequest
 	(*RespondActivityTaskFailedResponse)(nil),    // 11: engine.v1.RespondActivityTaskFailedResponse
-	(*HistoryEvent)(nil),                         // 12: engine.v1.HistoryEvent
-	(*Command)(nil),                              // 13: engine.v1.Command
+	(*SignalWorkflowRequest)(nil),                // 12: engine.v1.SignalWorkflowRequest
+	(*SignalWorkflowResponse)(nil),               // 13: engine.v1.SignalWorkflowResponse
+	(*HistoryEvent)(nil),                         // 14: engine.v1.HistoryEvent
+	(*Command)(nil),                              // 15: engine.v1.Command
 }
 var file_engine_v1_EngineService_proto_depIdxs = []int32{
-	12, // 0: engine.v1.PollWorkflowTaskResponse.history:type_name -> engine.v1.HistoryEvent
-	13, // 1: engine.v1.RespondWorkflowTaskCompletedRequest.commands:type_name -> engine.v1.Command
+	14, // 0: engine.v1.PollWorkflowTaskResponse.history:type_name -> engine.v1.HistoryEvent
+	15, // 1: engine.v1.RespondWorkflowTaskCompletedRequest.commands:type_name -> engine.v1.Command
 	0,  // 2: engine.v1.EngineService.StartWorkflow:input_type -> engine.v1.StartWorkflowRequest
 	2,  // 3: engine.v1.EngineService.PollWorkflowTask:input_type -> engine.v1.PollWorkflowTaskRequest
 	6,  // 4: engine.v1.EngineService.RespondWorkflowTaskCompleted:input_type -> engine.v1.RespondWorkflowTaskCompletedRequest
 	4,  // 5: engine.v1.EngineService.PollActivityTask:input_type -> engine.v1.PollActivityTaskRequest
 	8,  // 6: engine.v1.EngineService.RespondActivityTaskCompleted:input_type -> engine.v1.RespondActivityTaskCompletedRequest
 	10, // 7: engine.v1.EngineService.RespondActivityTaskFailed:input_type -> engine.v1.RespondActivityTaskFailedRequest
-	1,  // 8: engine.v1.EngineService.StartWorkflow:output_type -> engine.v1.StartWorkflowResponse
-	3,  // 9: engine.v1.EngineService.PollWorkflowTask:output_type -> engine.v1.PollWorkflowTaskResponse
-	7,  // 10: engine.v1.EngineService.RespondWorkflowTaskCompleted:output_type -> engine.v1.RespondWorkflowTaskCompletedResponse
-	5,  // 11: engine.v1.EngineService.PollActivityTask:output_type -> engine.v1.PollActivityTaskResponse
-	9,  // 12: engine.v1.EngineService.RespondActivityTaskCompleted:output_type -> engine.v1.RespondActivityTaskCompletedResponse
-	11, // 13: engine.v1.EngineService.RespondActivityTaskFailed:output_type -> engine.v1.RespondActivityTaskFailedResponse
-	8,  // [8:14] is the sub-list for method output_type
-	2,  // [2:8] is the sub-list for method input_type
+	12, // 8: engine.v1.EngineService.SignalWorkflow:input_type -> engine.v1.SignalWorkflowRequest
+	1,  // 9: engine.v1.EngineService.StartWorkflow:output_type -> engine.v1.StartWorkflowResponse
+	3,  // 10: engine.v1.EngineService.PollWorkflowTask:output_type -> engine.v1.PollWorkflowTaskResponse
+	7,  // 11: engine.v1.EngineService.RespondWorkflowTaskCompleted:output_type -> engine.v1.RespondWorkflowTaskCompletedResponse
+	5,  // 12: engine.v1.EngineService.PollActivityTask:output_type -> engine.v1.PollActivityTaskResponse
+	9,  // 13: engine.v1.EngineService.RespondActivityTaskCompleted:output_type -> engine.v1.RespondActivityTaskCompletedResponse
+	11, // 14: engine.v1.EngineService.RespondActivityTaskFailed:output_type -> engine.v1.RespondActivityTaskFailedResponse
+	13, // 15: engine.v1.EngineService.SignalWorkflow:output_type -> engine.v1.SignalWorkflowResponse
+	9,  // [9:16] is the sub-list for method output_type
+	2,  // [2:9] is the sub-list for method input_type
 	2,  // [2:2] is the sub-list for extension type_name
 	2,  // [2:2] is the sub-list for extension extendee
 	0,  // [0:2] is the sub-list for field type_name
@@ -1035,7 +1162,7 @@ func file_engine_v1_EngineService_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_engine_v1_EngineService_proto_rawDesc), len(file_engine_v1_EngineService_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   14,
+			NumMessages:   16,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -25,6 +25,7 @@ const (
 	EngineService_PollActivityTask_FullMethodName             = "/engine.v1.EngineService/PollActivityTask"
 	EngineService_RespondActivityTaskCompleted_FullMethodName = "/engine.v1.EngineService/RespondActivityTaskCompleted"
 	EngineService_RespondActivityTaskFailed_FullMethodName    = "/engine.v1.EngineService/RespondActivityTaskFailed"
+	EngineService_SignalWorkflow_FullMethodName               = "/engine.v1.EngineService/SignalWorkflow"
 )
 
 // EngineServiceClient is the client API for EngineService service.
@@ -37,6 +38,7 @@ type EngineServiceClient interface {
 	PollActivityTask(ctx context.Context, in *PollActivityTaskRequest, opts ...grpc.CallOption) (*PollActivityTaskResponse, error)
 	RespondActivityTaskCompleted(ctx context.Context, in *RespondActivityTaskCompletedRequest, opts ...grpc.CallOption) (*RespondActivityTaskCompletedResponse, error)
 	RespondActivityTaskFailed(ctx context.Context, in *RespondActivityTaskFailedRequest, opts ...grpc.CallOption) (*RespondActivityTaskFailedResponse, error)
+	SignalWorkflow(ctx context.Context, in *SignalWorkflowRequest, opts ...grpc.CallOption) (*SignalWorkflowResponse, error)
 }
 
 type engineServiceClient struct {
@@ -107,6 +109,16 @@ func (c *engineServiceClient) RespondActivityTaskFailed(ctx context.Context, in 
 	return out, nil
 }
 
+func (c *engineServiceClient) SignalWorkflow(ctx context.Context, in *SignalWorkflowRequest, opts ...grpc.CallOption) (*SignalWorkflowResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SignalWorkflowResponse)
+	err := c.cc.Invoke(ctx, EngineService_SignalWorkflow_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // EngineServiceServer is the server API for EngineService service.
 // All implementations must embed UnimplementedEngineServiceServer
 // for forward compatibility.
@@ -117,6 +129,7 @@ type EngineServiceServer interface {
 	PollActivityTask(context.Context, *PollActivityTaskRequest) (*PollActivityTaskResponse, error)
 	RespondActivityTaskCompleted(context.Context, *RespondActivityTaskCompletedRequest) (*RespondActivityTaskCompletedResponse, error)
 	RespondActivityTaskFailed(context.Context, *RespondActivityTaskFailedRequest) (*RespondActivityTaskFailedResponse, error)
+	SignalWorkflow(context.Context, *SignalWorkflowRequest) (*SignalWorkflowResponse, error)
 	mustEmbedUnimplementedEngineServiceServer()
 }
 
@@ -144,6 +157,9 @@ func (UnimplementedEngineServiceServer) RespondActivityTaskCompleted(context.Con
 }
 func (UnimplementedEngineServiceServer) RespondActivityTaskFailed(context.Context, *RespondActivityTaskFailedRequest) (*RespondActivityTaskFailedResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RespondActivityTaskFailed not implemented")
+}
+func (UnimplementedEngineServiceServer) SignalWorkflow(context.Context, *SignalWorkflowRequest) (*SignalWorkflowResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SignalWorkflow not implemented")
 }
 func (UnimplementedEngineServiceServer) mustEmbedUnimplementedEngineServiceServer() {}
 func (UnimplementedEngineServiceServer) testEmbeddedByValue()                       {}
@@ -274,6 +290,24 @@ func _EngineService_RespondActivityTaskFailed_Handler(srv interface{}, ctx conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _EngineService_SignalWorkflow_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SignalWorkflowRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EngineServiceServer).SignalWorkflow(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EngineService_SignalWorkflow_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EngineServiceServer).SignalWorkflow(ctx, req.(*SignalWorkflowRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // EngineService_ServiceDesc is the grpc.ServiceDesc for EngineService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -304,6 +338,10 @@ var EngineService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RespondActivityTaskFailed",
 			Handler:    _EngineService_RespondActivityTaskFailed_Handler,
+		},
+		{
+			MethodName: "SignalWorkflow",
+			Handler:    _EngineService_SignalWorkflow_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
