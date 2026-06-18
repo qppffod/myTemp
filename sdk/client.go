@@ -89,3 +89,13 @@ func (c *Client) RespondActivityTaskFailed(ctx context.Context, taskID int64, wo
 	})
 	return err
 }
+
+func (h *Client) SignalWorkflow(ctx context.Context, workflowID, runID, signalName string, input []byte) error {
+	_, err := h.engine.SignalWorkflow(ctx, &pb.SignalWorkflowRequest{
+		WorkflowId: workflowID,
+		RunId:      runID,
+		SignalName: signalName,
+		Input:      input,
+	})
+	return err
+}

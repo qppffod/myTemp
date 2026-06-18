@@ -371,3 +371,52 @@ func (h *History) ScanTimers(ctx context.Context) error {
 
 	return tx.Commit(ctx)
 }
+
+func (h *History) SignalWorkflow(ctx context.Context, workflowID, runID, signalName string, input []byte) error {
+	tx, err := h.p.BeginTx(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	// Verify the workflow is running
+	exec, err := h.p.GetWorkflowExecution(ctx, workflowID, runID)
+	if err != nil {
+		return err
+	}
+	if exec.Status != "Running" {
+		return fmt.Errorf("cannot signal workflow in status %s", exec.Status)
+	}
+
+	events, err := h.p.GetEvents(ctx, workflowID, runID)
+	if err != nil {
+		return err
+	}
+	nextEventID := int64(len(events)) + 1
+
+	// Append the SignalReceived event
+	if err := h.p.InsertEvent(ctx, tx, persistence.Event{
+		WorkflowID: workflowID,
+		RunID:      runID,
+		EventID:    nextEventID,
+		EventType:  "SignalReceived",
+		SignalName: signalName,
+		Data:       input,
+	}); err != nil {
+		return err
+	}
+
+	// Create a workflow task so the workflow replays and sees the signal
+	if err := h.p.InsertWorkflowTaskIfNotExists(ctx, tx, persistence.Task{
+		TaskQueue:        exec.TaskQueue,
+		TaskType:         "workflow",
+		WorkflowType:     exec.WorkflowType,
+		WorkflowID:       workflowID,
+		RunID:            runID,
+		ScheduledEventID: nextEventID,
+	}); err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
+}

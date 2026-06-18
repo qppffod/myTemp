@@ -18,6 +18,7 @@ type Event struct {
 	RunID         string
 	EventID       int64
 	EventType     string
+	SignalName    string
 	ActivityName  string
 	ActivityIndex int32
 	TimerIndex    int32

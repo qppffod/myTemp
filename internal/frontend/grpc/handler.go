@@ -79,6 +79,11 @@ func (h *Handler) RespondActivityTaskFailed(ctx context.Context, req *pb.Respond
 	return &pb.RespondActivityTaskFailedResponse{}, err
 }
 
+func (h *Handler) SignalWorkflow(ctx context.Context, req *pb.SignalWorkflowRequest) (*pb.SignalWorkflowResponse, error) {
+	err := h.history.SignalWorkflow(ctx, req.WorkflowId, req.RunId, req.SignalName, req.Input)
+	return &pb.SignalWorkflowResponse{}, err
+}
+
 func unmarshalCommands(commands []*pb.Command) []history.Command {
 	result := make([]history.Command, len(commands))
 	for i, c := range commands {
@@ -105,6 +110,7 @@ func marshalEvents(events []persistence.Event) []*pb.HistoryEvent {
 			ActivityIndex: e.ActivityIndex,
 			TimerIndex:    e.TimerIndex,
 			Data:          e.Data,
+			SignalName:    e.SignalName,
 		}
 	}
 	return result

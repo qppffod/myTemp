@@ -15,15 +15,17 @@ type Context struct {
 	history           []*pb.HistoryEvent
 	commands          []*pb.Command
 	queue             string
+	signalConsumed    map[string]int
 	activityCallCount int
 	timerCallCount    int
 }
 
 func New(ctx context.Context, history []*pb.HistoryEvent, queue string) *Context {
 	return &Context{
-		ctx:     ctx,
-		history: history,
-		queue:   queue,
+		ctx:            ctx,
+		history:        history,
+		queue:          queue,
+		signalConsumed: make(map[string]int),
 	}
 }
 
@@ -143,5 +145,26 @@ func Sleep(ctx *Context, duration time.Duration) {
 		TimerIndex: int32(timerIndex),
 		DurationMs: duration.Milliseconds(),
 	})
+	panic(ErrPendingActivity)
+}
+
+func ReceiveSignal(ctx *Context, signalName string, out any) {
+	// Track which signals of this name we've already consumed (by position)
+	consumed := ctx.signalConsumed[signalName]
+	seen := 0
+
+	for _, event := range ctx.history {
+		if event.EventType == "SignalReceived" && event.SignalName == signalName {
+			if seen == consumed {
+				ctx.signalConsumed[signalName]++
+				if out != nil {
+					json.Unmarshal(event.Data, out)
+				}
+				return
+			}
+			seen++
+		}
+	}
+
 	panic(ErrPendingActivity)
 }

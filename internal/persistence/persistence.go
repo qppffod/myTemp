@@ -69,16 +69,17 @@ func (p *Persistence) InsertEvent(ctx context.Context, tx pgx.Tx, e Event) error
 		e.Data = []byte{}
 	}
 	_, err := tx.Exec(ctx,
-		`INSERT INTO events (workflow_id, run_id, event_id, event_type, activity_name, activity_index, timer_index, data)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-		e.WorkflowID, e.RunID, e.EventID, e.EventType, e.ActivityName, e.ActivityIndex, e.TimerIndex, e.Data,
+		`INSERT INTO events (workflow_id, run_id, event_id, event_type, activity_name,
+							 activity_index, signal_name, timer_index, data)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+		e.WorkflowID, e.RunID, e.EventID, e.EventType, e.ActivityName, e.ActivityIndex, e.SignalName, e.TimerIndex, e.Data,
 	)
 	return err
 }
 
 func (p *Persistence) GetEvents(ctx context.Context, workflowID, runID string) ([]Event, error) {
 	rows, err := p.db.Query(ctx,
-		`SELECT id, workflow_id, run_id, event_id, event_type, activity_name, activity_index, timer_index, data, created_at
+		`SELECT id, workflow_id, run_id, event_id, event_type, activity_name, activity_index, signal_name, timer_index, data, created_at
 		 FROM events
 		 WHERE workflow_id = $1 AND run_id = $2
 		 ORDER BY event_id`,
@@ -102,6 +103,7 @@ func (p *Persistence) GetEvents(ctx context.Context, workflowID, runID string) (
 			&e.EventType,
 			&e.ActivityName,
 			&e.ActivityIndex,
+			&e.SignalName,
 			&e.TimerIndex,
 			&e.Data,
 			&e.CreatedAt,
@@ -314,4 +316,18 @@ func (p *Persistence) MarkTimerFired(ctx context.Context, tx pgx.Tx, timerID int
 
 func (p *Persistence) BeginTx(ctx context.Context) (pgx.Tx, error) {
 	return p.db.Begin(ctx)
+}
+
+func (p *Persistence) InsertWorkflowTaskIfNotExists(ctx context.Context, tx pgx.Tx, t Task) error {
+	_, err := tx.Exec(ctx, `
+        INSERT INTO tasks (task_queue, task_type, workflow_type,
+                           workflow_id, run_id, scheduled_event_id)
+        SELECT $1, $2, $3, $4, $5, $6
+        WHERE NOT EXISTS (
+            SELECT 1 FROM tasks
+            WHERE workflow_id = $4 AND run_id = $5 AND task_type = 'workflow'
+        )`,
+		t.TaskQueue, t.TaskType, t.WorkflowType, t.WorkflowID, t.RunID, t.ScheduledEventID,
+	)
+	return err
 }
