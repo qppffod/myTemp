@@ -53,6 +53,36 @@ func (p *Persistence) GetWorkflowExecution(ctx context.Context, workflowID, runI
 	return &w, nil
 }
 
+// GetLatestExecution returns the most recently started execution for a
+// workflow ID, regardless of run ID. Used to resolve an operation that targets
+// a workflow by ID only (run ID unknown to the caller, e.g. an external signal).
+func (p *Persistence) GetLatestExecution(ctx context.Context, workflowID string) (*WorkflowExecution, error) {
+	row := p.db.QueryRow(ctx,
+		`SELECT workflow_id, run_id, workflow_type, task_queue, status, started_at, closed_at
+		     FROM workflow_executions
+			 WHERE workflow_id = $1
+			 ORDER BY started_at DESC
+			 LIMIT 1`,
+		workflowID,
+	)
+
+	var w WorkflowExecution
+	err := row.Scan(
+		&w.WorkflowID,
+		&w.RunID,
+		&w.WorkflowType,
+		&w.TaskQueue,
+		&w.Status,
+		&w.StartedAt,
+		&w.ClosedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &w, nil
+}
+
 func (p *Persistence) UpdateWorkflowStatus(ctx context.Context, tx pgx.Tx, workflowID, runID, status string) error {
 	_, err := tx.Exec(ctx,
 		`UPDATE workflow_executions
@@ -314,15 +344,11 @@ func (p *Persistence) MarkTimerFired(ctx context.Context, tx pgx.Tx, timerID int
 	return err
 }
 
-func (p *Persistence) BeginTx(ctx context.Context) (pgx.Tx, error) {
-	return p.db.Begin(ctx)
-}
-
 func (p *Persistence) InsertWorkflowTaskIfNotExists(ctx context.Context, tx pgx.Tx, t Task) error {
 	_, err := tx.Exec(ctx, `
         INSERT INTO tasks (task_queue, task_type, workflow_type,
-                           workflow_id, run_id, scheduled_event_id)
-        SELECT $1, $2, $3, $4, $5, $6
+                           workflow_id, run_id, scheduled_event_id, activity_name)
+        SELECT $1, $2, $3, $4, $5, $6, ''
         WHERE NOT EXISTS (
             SELECT 1 FROM tasks
             WHERE workflow_id = $4 AND run_id = $5 AND task_type = 'workflow'
@@ -330,4 +356,8 @@ func (p *Persistence) InsertWorkflowTaskIfNotExists(ctx context.Context, tx pgx.
 		t.TaskQueue, t.TaskType, t.WorkflowType, t.WorkflowID, t.RunID, t.ScheduledEventID,
 	)
 	return err
+}
+
+func (p *Persistence) BeginTx(ctx context.Context) (pgx.Tx, error) {
+	return p.db.Begin(ctx)
 }

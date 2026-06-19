@@ -34,7 +34,7 @@ CREATE TABLE tasks (
     run_id              UUID NOT NULL,
     scheduled_event_id  BIGINT NOT NULL,
     input               BYTEA,
-    activity_name       TEXT,
+    activity_name       TEXT NOT NULL DEFAULT '',
     activity_index      INT NOT NULL DEFAULT 0,
     attempt             INT NOT NULL DEFAULT 1,
     max_attempts        INT NOT NULL DEFAULT 3,

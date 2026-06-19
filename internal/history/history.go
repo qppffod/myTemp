@@ -27,6 +27,11 @@ func (h *History) StartWorkflow(ctx context.Context, workflowID, workflowType, t
 	}
 	defer tx.Rollback(ctx)
 
+	existing, err := h.p.GetLatestExecution(ctx, workflowID)
+	if err == nil && existing.Status == "Running" {
+		return "", fmt.Errorf("workflow %s is already running", workflowID)
+	}
+
 	runID := uuid.New().String()
 
 	if err := h.p.InsertWorkflowExecution(ctx, tx, persistence.WorkflowExecution{
@@ -373,6 +378,14 @@ func (h *History) ScanTimers(ctx context.Context) error {
 }
 
 func (h *History) SignalWorkflow(ctx context.Context, workflowID, runID, signalName string, input []byte) error {
+	if runID == "" {
+		exec, err := h.p.GetLatestExecution(ctx, workflowID)
+		if err != nil {
+			return fmt.Errorf("no running workflow for id %s: %w", workflowID, err)
+		}
+		runID = exec.RunID
+	}
+
 	tx, err := h.p.BeginTx(ctx)
 	if err != nil {
 		return err
