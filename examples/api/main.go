@@ -17,7 +17,9 @@ func main() {
 
 	mux := http.NewServeMux()
 
+	// mux.HandleFunc("POST /test", TestHandler(client))
 	mux.HandleFunc("POST /test", TestHandler(client))
+	mux.HandleFunc("POST /approve", ApproveHandler(client))
 
 	server := http.Server{
 		Addr:    ":3000",
@@ -48,12 +50,29 @@ func TestHandler(c *sdk.Client) http.HandlerFunc {
 			return
 		}
 
-		runID, err := c.StartNewWorkflow(r.Context(), "test-order22", "TestTimerWorkflow", "test", orderBytes)
+		runID, err := c.StartNewWorkflow(r.Context(), "test-order22", "ApprovalWorkflow", "test", orderBytes)
 		if err != nil {
 			w.Write([]byte(fmt.Sprintf("Failed to get runID from StartWorkflow: %s", err.Error())))
 			return
 		}
 
 		w.Write([]byte(fmt.Sprintf("runID:%s", runID)))
+	}
+}
+
+type Decision struct {
+	Approved bool
+}
+
+func ApproveHandler(c *sdk.Client) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		decision := Decision{Approved: true}
+		data, _ := json.Marshal(decision)
+		err := c.SignalWorkflow(r.Context(), "test-order22", "", "approval", data)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		w.Write([]byte("approved"))
 	}
 }

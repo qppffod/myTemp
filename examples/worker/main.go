@@ -23,6 +23,7 @@ func main() {
 
 	worker.RegisterWorkflow(TestWorkflow)
 	worker.RegisterWorkflow(TestTimerWorkflow)
+	worker.RegisterWorkflow(ApprovalWorkflow)
 	worker.RegisterActivity(CheckStock)
 	worker.RegisterActivity(ChargeCard)
 	worker.RegisterActivity(Ship)
@@ -134,4 +135,37 @@ func ChargeCard(ctx context.Context, stock StockResult) (ChargeResult, error) {
 func Ship(ctx context.Context, charge ChargeResult) (string, error) {
 	fmt.Printf("Ship: charged=%v amount=%d\n", charge.Charged, charge.Amount)
 	return "TRACK-12345", nil
+}
+
+// ================================================================================
+
+type Decision struct {
+	Approved bool
+}
+
+func ApprovalWorkflow(c *workflow.Context, order PizzaOrder) error {
+	var stock StockResult
+	err := workflow.ExecuteActivity(c, "CheckStock", order).Get(&stock)
+	if err != nil {
+		return err
+	}
+	log.Printf("Submitted for approval, waiting for signal...")
+
+	// suspended here until an "approval" signal arrives
+	var decision Decision
+	workflow.ReceiveSignal(c, "approval", &decision)
+
+	if !decision.Approved {
+		log.Printf("Rejected")
+		return fmt.Errorf("approval rejected")
+	}
+
+	log.Printf("Approved! Proceeding to ship.")
+	var tracking string
+	err = workflow.ExecuteActivity(c, "Ship", ChargeResult{true, 100}).Get(&tracking)
+	if err != nil {
+		return err
+	}
+	log.Printf("Shipped: %s", tracking)
+	return nil
 }
