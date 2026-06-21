@@ -46,12 +46,12 @@ tiny Go SDK for authoring workflows and activities.
     multi-statement transactions (start workflow, turn worker commands into
     events + tasks).
   - `internal/persistence` — raw `pgx` data access over the `events`, `tasks`,
-    and `workflow_executions` tables.
+    `timers`, and `workflow_executions` tables.
 - **SDK** (`sdk/`) — `Client` (gRPC wrapper), `Worker` (poll loops + replay
   driver), and `sdk/workflow` (the workflow-author API: `Context`,
-  `ExecuteActivity`, `ActivityFuture`).
+  `ExecuteActivity`, `ActivityFuture`, `Sleep`, `ReceiveSignal`).
 - There is **no in-process scheduling** — all coordination happens through the
-  `tasks` table.
+  `tasks` and `timers` tables, scanned by background loops in the engine.
 
 ### The replay loop
 
@@ -78,6 +78,22 @@ Typed data flows end to end: workflow input, activity input, and activity result
 are all JSON-encoded, so one activity's result struct can be passed straight
 into the next as input.
 
+### Beyond activities
+
+The same replay model powers the richer primitives:
+
+- **Durable timers** — `workflow.Sleep(ctx, d)` appends a `StartTimer` command;
+  the engine persists a row in the `timers` table (`fire_at = now() + d`) and a
+  background `scanTimers` loop fires due timers (a `TimerFired` event + a new
+  workflow task) so the workflow wakes up exactly where it slept.
+- **Signals** — `workflow.ReceiveSignal(ctx, name, &out)` suspends the workflow
+  until a signal arrives. `Client.SignalWorkflow` appends a `SignalReceived`
+  event out-of-band and enqueues a workflow task; signals of the same name are
+  consumed in order.
+- **Activity retries** — a failed activity is automatically retried with
+  exponential backoff + jitter before the failure is surfaced to the workflow
+  (see *Features*).
+
 ## Quickstart
 
 A full end-to-end run needs **three processes**: engine + worker + api.
@@ -95,13 +111,24 @@ go run ./examples/worker
 # 4. Run the example API (HTTP on :3000)
 go run ./examples/api
 
-# 5. Kick off a workflow
+# 5. Kick off a workflow (starts an approval workflow that waits for a signal)
 curl -XPOST localhost:3000/test -d '{"OrderID":1,"Items":["pizza"]}'
+
+# 6. Unblock it by sending the "approval" signal
+curl -XPOST localhost:3000/approve
 ```
 
-The example is a toy order pipeline that runs three activities sequentially,
-passing typed results down the chain:
-`CheckStock → ChargeCard → Ship` (see `examples/worker/main.go`).
+`examples/worker/main.go` registers three example workflows:
+
+- `TestWorkflow` — a toy order pipeline running three activities sequentially,
+  passing typed results down the chain: `CheckStock → ChargeCard → Ship`.
+  `ChargeCard` is deliberately flaky (fails twice) to demonstrate activity
+  retries.
+- `TestTimerWorkflow` — same pipeline with a `workflow.Sleep(c, 30s)` in the
+  middle to show durable timers.
+- `ApprovalWorkflow` — runs an activity, then blocks on a `"approval"` signal
+  (delivered by `POST /approve`) before shipping. This is what the quickstart
+  above triggers.
 
 The engine reads `DATABASE_URL` (defaults to
 `postgres://postgres:password@localhost:5432/myengine?sslmode=disable`, matching
@@ -142,6 +169,23 @@ worker.RegisterActivity(CheckStock)
 worker.Run(ctx)
 ```
 
+Workflows can also sleep and wait for signals — both are durable and replay-safe:
+
+```go
+func ApprovalWorkflow(c *workflow.Context, order PizzaOrder) error {
+    // Durable timer: the workflow is suspended and resumed by the engine.
+    workflow.Sleep(c, 30*time.Second)
+
+    // Block until an "approval" signal arrives (sent via Client.SignalWorkflow).
+    var decision Decision
+    workflow.ReceiveSignal(c, "approval", &decision)
+    if !decision.Approved {
+        return fmt.Errorf("approval rejected")
+    }
+    return nil
+}
+```
+
 ## Features
 
 ### Implemented
@@ -152,40 +196,47 @@ worker.Run(ctx)
   from one activity into the next.
 - ✅ **gRPC engine API** — `StartWorkflow`, `PollWorkflowTask`,
   `RespondWorkflowTaskCompleted`, `PollActivityTask`,
-  `RespondActivityTaskCompleted`, `RespondActivityTaskFailed`.
+  `RespondActivityTaskCompleted`, `RespondActivityTaskFailed`, `SignalWorkflow`.
+- ✅ **Durable timers** — `workflow.Sleep` persists a timer; a background
+  `scanTimers` loop fires due timers and resumes the workflow via replay.
+- ✅ **Signals** — `workflow.ReceiveSignal` suspends a workflow until a signal is
+  delivered (`Client.SignalWorkflow`); same-named signals are consumed in order.
+- ✅ **Automatic activity retries** — a failed activity is rescheduled with
+  exponential backoff + jitter (`DefaultRetryPolicy`: 3 attempts, 1s initial,
+  ×2.0, capped at 1m) using the task's `visibility_time`. The `ActivityFailed`
+  event is only written once attempts are exhausted, and then surfaces as an
+  `error` to the workflow on replay.
 - ✅ **Concurrent task dispatch** — `FOR UPDATE SKIP LOCKED` + a partial index
   (`lease_owner IS NULL`) lets multiple workers poll the shared `tasks` table
   without handing out the same task twice.
-- ✅ **Activity failure** wired end to end — a panic, returned `error`, or
-  marshal error reports `RespondActivityTaskFailed`, appends an `ActivityFailed`
-  event, and surfaces as an `error` to the workflow on replay.
 - ✅ **Task leasing + crash recovery** — `PollTask` leases a task to the polling
   worker (`lease_owner` = worker UUID, `lease_expires_at = now() + 30s`) in the
   same transaction. A background loop in the engine reclaims leases that expire
   (worker crashed or stalled), making the task pollable again.
+- ✅ **Graceful shutdown** — the engine runs the gRPC server and its background
+  loops under a `signal.NotifyContext` (SIGINT/SIGTERM).
 - ✅ **Auto-migration** — the engine runs SQL migrations from `./migrations` on
   boot.
 
 ### Not implemented / partial
 
-- ❌ **Activity retry** — a *failed* activity is not automatically rescheduled
-  (distinct from lease reclamation, which only re-queues tasks abandoned by a
-  dead worker).
 - 🚧 **Parallel activities** — the replay model supports it (each call gets a
   distinct `ActivityIndex`), but it's only sketched, not exercised (see the
   commented block in `examples/worker/main.go`).
-- ❌ **Timers / `workflow.Sleep`, signals, queries, child workflows,
-  continue-as-new** — none of the richer Temporal primitives.
+- ❌ **Queries, child workflows, continue-as-new** — the remaining richer
+  Temporal primitives.
 - ❌ **Workflow versioning / non-determinism detection.**
-- ❌ **Configurable retry policies, timeouts, heartbeats.**
-- ⚠️ Only `sdk/workflow` currently has unit tests (`go test ./sdk/workflow/`).
+- ❌ **Per-activity retry policies, timeouts, heartbeats** — retries use a single
+  hard-coded `DefaultRetryPolicy`.
 
 ## Development
 
 ```bash
 go build ./...
 go vet ./...
-go test ./...                 # sdk/workflow has the replay / typed-flow tests
+go test ./sdk/workflow/        # pure replay / typed-flow unit tests (no DB)
+go test ./...                  # integration tests spin up Postgres via
+                               # testcontainers — requires a running Docker daemon
 go test -run TestName ./...    # single test
 
 # Regenerate gRPC stubs after editing the proto
@@ -199,5 +250,9 @@ make proto-clean
   timestamps).
 - `events` — the append-only history; replay reads these in order.
 - `tasks` — a single table backing both `workflow` and `activity` tasks
-  (distinguished by `task_type`), plus the lease columns. A completed task is
-  **deleted** — the history is the durable record, not the task row.
+  (distinguished by `task_type`), plus the lease columns (`lease_owner`,
+  `lease_expires_at`), retry counters (`attempt`, `max_attempts`), and
+  `visibility_time` (used for retry backoff). A completed task is **deleted** —
+  the history is the durable record, not the task row.
+- `timers` — pending durable timers (`fire_at`, `fired`), scanned by the engine
+  to fire `Sleep`s.
