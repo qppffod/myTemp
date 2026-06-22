@@ -2,6 +2,7 @@ package history_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/qppffod/myTemp/internal/history"
 	"github.com/qppffod/myTemp/internal/persistence"
@@ -81,4 +82,64 @@ func TestSingleActivityWorkflow_CompletesCleanly(t *testing.T) {
 	exec, err := p.GetWorkflowExecution(t.Context(), "order-2", runID)
 	require.NoError(t, err)
 	require.Equal(t, "Completed", exec.Status)
+}
+
+// ---------------------------------------------------------------------------
+//
+// 							  Failure handling
+//
+// ---------------------------------------------------------------------------
+
+func TestActivityFailure_ExhaustsAndFailsWorkflow(t *testing.T) {
+	h, p, _ := testutil.SetupEngine(t)
+
+	runID, err := h.StartWorkflow(t.Context(), "order-3", "TestWorkflow", "default", []byte(`{}`))
+	require.NoError(t, err)
+
+	wfTask, _ := p.PollTask(t.Context(), "default", "workflow", "w1")
+	err = h.CompleteWorkflowTask(t.Context(), wfTask.ID, "order-3", runID, []history.Command{
+		{Type: "ScheduleActivity", ActivityName: "Flaky", ActivityIndex: 0, TaskQueue: "default"},
+	})
+	require.NoError(t, err)
+
+	// Fail the activity on every attempt. A non-terminal failure deletes the task
+	// and re-schedules a fresh one (new ID, future visibility_time from the
+	// backoff), so each attempt must poll for the newly scheduled retry task
+	// before failing it again. DefaultRetryPolicy allows 3 attempts.
+	const maxAttempts = 3
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		var actTask *persistence.Task
+		require.Eventually(t, func() bool {
+			tsk, e := p.PollTask(t.Context(), "default", "activity", "w1")
+			if e != nil || tsk == nil {
+				return false
+			}
+			actTask = tsk
+			return true
+		}, 5*time.Second, 50*time.Millisecond, "retry task for attempt #%d should become pollable", attempt)
+
+		require.Equal(t, "Flaky", actTask.ActivityName)
+		require.EqualValues(t, attempt, actTask.Attempt)
+
+		err = h.FailActivityTask(t.Context(), actTask.ID, "order-3", runID, "connection refused")
+		require.NoError(t, err)
+	}
+
+	// Attempts exhausted: ActivityFailed is written and a workflow task enqueued.
+	// The workflow replays and propagates the error.
+	wfTask2, err := p.PollTask(t.Context(), "default", "workflow", "w1")
+	require.NoError(t, err)
+	require.NotNil(t, wfTask2)
+	err = h.CompleteWorkflowTask(t.Context(), wfTask2.ID, "order-3", runID, []history.Command{
+		{Type: "FailWorkflow", Input: []byte("connection refused")},
+	})
+	require.NoError(t, err)
+
+	events := testutil.GetEvents(t, p, "order-3", runID)
+	types := eventTypes(events)
+	require.Contains(t, types, "ActivityFailed")
+	require.Equal(t, "WorkflowFailed", types[len(types)-1])
+
+	exec, _ := p.GetWorkflowExecution(t.Context(), "order-3", runID)
+	require.Equal(t, "Failed", exec.Status)
 }
