@@ -7,6 +7,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/qppffod/myTemp/internal/history"
 	"github.com/qppffod/myTemp/internal/persistence"
+	"github.com/qppffod/myTemp/migrations"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
@@ -15,8 +16,7 @@ import (
 
 func SetupEngine(t *testing.T) (*history.History, *persistence.Persistence, *pgxpool.Pool) {
 	t.Helper()
-	pool, clean := StartTestPostgres(t)
-	defer clean()
+	pool, _ := StartTestPostgres(t)
 	p := persistence.New(pool)
 	h := history.New(p)
 	return h, p, pool
@@ -39,17 +39,17 @@ func StartTestPostgres(t *testing.T) (*pgxpool.Pool, func()) {
 	connStr, err := container.ConnectionString(ctx, "sslmode=disable")
 	require.NoError(t, err)
 
-	require.NoError(t, persistence.RunMigrations(connStr))
+	require.NoError(t, migrations.RunMigrations(connStr))
 
 	pool, err := pgxpool.New(ctx, connStr)
 	require.NoError(t, err)
 
-	cleanunp := func() {
+	cleanup := func() {
 		pool.Close()
 		container.Terminate(ctx)
 	}
 
-	return pool, cleanunp
+	return pool, cleanup
 }
 
 func GetEvents(t *testing.T, db *pgxpool.Pool, workflowID, runID string) []persistence.Event {

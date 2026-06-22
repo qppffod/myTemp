@@ -13,6 +13,7 @@ import (
 	grpcHandlers "github.com/qppffod/myTemp/internal/frontend/grpc"
 	"github.com/qppffod/myTemp/internal/history"
 	"github.com/qppffod/myTemp/internal/persistence"
+	"github.com/qppffod/myTemp/migrations"
 )
 
 func main() {
@@ -24,7 +25,7 @@ func main() {
 		connStr = "postgres://postgres:password@localhost:5432/myengine?sslmode=disable"
 	}
 
-	if err := persistence.RunMigrations(connStr); err != nil {
+	if err := migrations.RunMigrations(connStr); err != nil {
 		log.Fatalf("migrations: %v", err)
 	}
 
