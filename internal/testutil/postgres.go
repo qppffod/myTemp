@@ -52,9 +52,8 @@ func StartTestPostgres(t *testing.T) (*pgxpool.Pool, func()) {
 	return pool, cleanup
 }
 
-func GetEvents(t *testing.T, db *pgxpool.Pool, workflowID, runID string) []persistence.Event {
+func GetEvents(t *testing.T, p *persistence.Persistence, workflowID, runID string) []persistence.Event {
 	t.Helper()
-	p := persistence.New(db)
 	events, err := p.GetEvents(t.Context(), workflowID, runID)
 	require.NoError(t, err)
 	return events
