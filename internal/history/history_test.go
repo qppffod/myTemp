@@ -178,3 +178,49 @@ func TestActivityRetyr_ReschedulesWithoutRetry(t *testing.T) {
 	require.NoError(t, err)
 	require.Nil(t, delayedTsk, "retried task should be hidden until its backoff delay passes")
 }
+
+// ---------------------------------------------------------------------------
+//
+// 								Signals
+//
+// ---------------------------------------------------------------------------
+
+func TestSignalWorkflow_AppendsEventAndCreateTask(t *testing.T) {
+	h, p, _ := testutil.SetupEngine(t)
+
+	runID, err := h.StartWorkflow(t.Context(), "order-5", "TestWorkflow", "default", []byte(`{}`))
+	require.NoError(t, err)
+
+	wfTsk, err := p.PollTask(t.Context(), "default", "workflow", "w1")
+	require.NoError(t, err)
+
+	err = h.CompleteWorkflowTask(t.Context(), wfTsk.ID, "order-5", runID, nil)
+	require.NoError(t, err)
+
+	err = h.SignalWorkflow(t.Context(), "order-5", "", "approval", []byte(`{"Approved": true}`))
+	require.NoError(t, err)
+
+	events := testutil.GetEvents(t, p, "order-5", runID)
+	require.Contains(t, eventTypes(events), "SignalReceived")
+
+	var found bool
+	for _, e := range events {
+		if e.EventType == "SignalReceived" {
+			require.Equal(t, "approval", e.SignalName)
+			require.JSONEq(t, `{"Approved": true}`, string(e.Data))
+			found = true
+		}
+	}
+	require.True(t, found)
+
+	task, err := p.PollTask(t.Context(), "default", "workflow", "w1")
+	require.NoError(t, err)
+	require.NotNil(t, task)
+}
+
+func TestSignalWofklow_NotRunning_Errors(t *testing.T) {
+	h, _, _ := testutil.SetupEngine(t)
+
+	err := h.SignalWorkflow(t.Context(), "does-not-exist", "", "approval", []byte(`{}`))
+	require.Error(t, err)
+}
