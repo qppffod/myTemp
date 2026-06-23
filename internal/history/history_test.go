@@ -143,3 +143,38 @@ func TestActivityFailure_ExhaustsAndFailsWorkflow(t *testing.T) {
 	exec, _ := p.GetWorkflowExecution(t.Context(), "order-3", runID)
 	require.Equal(t, "Failed", exec.Status)
 }
+
+// ---------------------------------------------------------------------------
+//
+// 									Retries
+//
+// ---------------------------------------------------------------------------
+
+func TestActivityRetyr_ReschedulesWithoutRetry(t *testing.T) {
+	h, p, _ := testutil.SetupEngine(t)
+
+	runID, err := h.StartWorkflow(t.Context(), "order-4", "TestWorkflow", "default", []byte(`{}`))
+	require.NoError(t, err)
+
+	wfTsk, err := p.PollTask(t.Context(), "default", "workflow", "w1")
+	require.NoError(t, err)
+
+	h.CompleteWorkflowTask(t.Context(), wfTsk.ID, "order-4", runID, []history.Command{
+		{Type: "ScheduleActivity", ActivityName: "Flaky", ActivityIndex: 0, TaskQueue: "default"},
+	})
+
+	actTask, err := p.PollTask(t.Context(), "default", "activity", "w1")
+	require.NoError(t, err)
+	require.Equal(t, int32(1), actTask.Attempt)
+
+	// Should NOT write an ActivityFailed event
+	err = h.FailActivityTask(t.Context(), actTask.ID, "order-4", runID, "transient")
+	require.NoError(t, err)
+
+	events := testutil.GetEvents(t, p, "order-4", runID)
+	require.NotContains(t, eventTypes(events), "ActivityFailed")
+
+	delayedTsk, err := p.PollTask(t.Context(), "default", "activity", "w1")
+	require.NoError(t, err)
+	require.Nil(t, delayedTsk, "retried task should be hidden until its backoff delay passes")
+}
