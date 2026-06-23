@@ -224,3 +224,36 @@ func TestSignalWofklow_NotRunning_Errors(t *testing.T) {
 	err := h.SignalWorkflow(t.Context(), "does-not-exist", "", "approval", []byte(`{}`))
 	require.Error(t, err)
 }
+
+// ---------------------------------------------------------------------------
+//
+// 						Duplicate completion protection
+//
+// ---------------------------------------------------------------------------
+
+func TestCompleteWorkflowTask_AlreadyCompleted_Discarded(t *testing.T) {
+	h, p, _ := testutil.SetupEngine(t)
+
+	runID, err := h.StartWorkflow(t.Context(), "order-6", "TestWorkflow", "default", []byte(`{}`))
+	require.NoError(t, err)
+
+	wfTsk, err := p.PollTask(t.Context(), "default", "workflow", "w1")
+	require.NoError(t, err)
+
+	err = h.CompleteWorkflowTask(t.Context(), wfTsk.ID, "order-6", runID, []history.Command{
+		{Type: "CompleteWorkflow"},
+	})
+
+	exec, err := p.GetWorkflowExecution(t.Context(), "order-6", runID)
+	require.NoError(t, err)
+	require.Equal(t, "Completed", exec.Status)
+
+	events := testutil.GetEvents(t, p, "order-6", runID)
+	count := 0
+	for _, e := range events {
+		if e.EventType == "WorkflowCompleted" {
+			count++
+		}
+	}
+	require.Equal(t, 1, count)
+}
