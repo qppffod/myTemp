@@ -257,3 +257,59 @@ func TestCompleteWorkflowTask_AlreadyCompleted_Discarded(t *testing.T) {
 	}
 	require.Equal(t, 1, count)
 }
+
+// ---------------------------------------------------------------------------
+//
+//                          Timer scanner
+//
+// ---------------------------------------------------------------------------
+
+func TestTimerScanner_FiresDueTimer(t *testing.T) {
+	h, p, _ := testutil.SetupEngine(t)
+
+	runID, err := h.StartWorkflow(t.Context(), "order-timer", "TestWorkflow", "default", []byte(`{}`))
+	require.NoError(t, err)
+
+	wfTsk, err := p.PollTask(t.Context(), "default", "workflow", "w1")
+	require.NoError(t, err)
+
+	err = h.CompleteWorkflowTask(t.Context(), wfTsk.ID, "order-timer", runID, []history.Command{
+		{Type: "StartTimer", TimerIndex: 0, DurationMs: 100},
+	})
+	require.NoError(t, err)
+
+	events := testutil.GetEvents(t, p, "order-timer", runID)
+	require.Contains(t, eventTypes(events), "TimerStarted")
+	require.NotContains(t, eventTypes(events), "TimerFired")
+
+	time.Sleep(200 * time.Millisecond)
+	require.NoError(t, h.ScanTimers(t.Context()))
+
+	events = testutil.GetEvents(t, p, "order-timer", runID)
+	require.Contains(t, eventTypes(events), "TimerFired")
+
+	task, err := p.PollTask(t.Context(), "default", "workflow", "w1")
+	require.NoError(t, err)
+	require.NotNil(t, task, "scanner should create a workflow task so the workflow resumes")
+}
+
+func TestTimerScanner_DoesNotFireBeforeDue(t *testing.T) {
+	h, p, _ := testutil.SetupEngine(t)
+
+	runID, err := h.StartWorkflow(t.Context(), "order-timer2", "TestWorkflow", "default", []byte(`{}`))
+	require.NoError(t, err)
+
+	wfTsk, err := p.PollTask(t.Context(), "default", "workflow", "w1")
+	require.NoError(t, err)
+
+	err = h.CompleteWorkflowTask(t.Context(), wfTsk.ID, "order-timer2", runID, []history.Command{
+		{Type: "StartTimer", TimerIndex: 0, DurationMs: 60000},
+	})
+	require.NoError(t, err)
+
+	require.NoError(t, h.ScanTimers(t.Context()))
+
+	events := testutil.GetEvents(t, p, "order-timer2", runID)
+	require.NotContains(t, eventTypes(events), "TimerFired",
+		"a timer that is not yet due must not fire")
+}
