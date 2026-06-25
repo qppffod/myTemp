@@ -2,6 +2,7 @@ package grpcHandlers
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/qppffod/myTemp/internal/history"
 	"github.com/qppffod/myTemp/internal/persistence"
@@ -12,12 +13,14 @@ type Handler struct {
 	pb.UnimplementedEngineServiceServer
 	persistence *persistence.Persistence
 	history     *history.History
+	logger      *slog.Logger
 }
 
-func New(p *persistence.Persistence, h *history.History) *Handler {
+func New(p *persistence.Persistence, h *history.History, logger *slog.Logger) *Handler {
 	return &Handler{
 		persistence: p,
 		history:     h,
+		logger:      logger,
 	}
 }
 

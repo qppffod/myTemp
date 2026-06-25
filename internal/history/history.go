@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
@@ -11,13 +12,12 @@ import (
 )
 
 type History struct {
-	p *persistence.Persistence
+	p      *persistence.Persistence
+	logger *slog.Logger
 }
 
-func New(p *persistence.Persistence) *History {
-	return &History{
-		p: p,
-	}
+func New(p *persistence.Persistence, logger *slog.Logger) *History {
+	return &History{p: p, logger: logger}
 }
 
 func (h *History) StartWorkflow(ctx context.Context, workflowID, workflowType, taskQueue string, input []byte) (string, error) {

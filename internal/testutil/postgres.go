@@ -2,6 +2,8 @@ package testutil
 
 import (
 	"context"
+	"io"
+	"log/slog"
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -16,9 +18,11 @@ import (
 
 func SetupEngine(t *testing.T) (*history.History, *persistence.Persistence, *pgxpool.Pool) {
 	t.Helper()
-	pool, _ := StartTestPostgres(t)
+	pool, clean := StartTestPostgres(t)
+	t.Cleanup(clean)
 	p := persistence.New(pool)
-	h := history.New(p)
+	logger := slog.New(slog.NewJSONHandler(io.Discard, nil))
+	h := history.New(p, logger)
 	return h, p, pool
 }
 

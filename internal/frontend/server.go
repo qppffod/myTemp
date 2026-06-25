@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
-	"os"
 
 	grpcHandlers "github.com/qppffod/myTemp/internal/frontend/grpc"
 	enginev1 "github.com/qppffod/myTemp/proto/engine/v1"
@@ -15,9 +14,7 @@ import (
 
 const grpcAddr = ":7233"
 
-func Start(ctx context.Context, handler *grpcHandlers.Handler) error {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-
+func Start(ctx context.Context, handler *grpcHandlers.Handler, logger *slog.Logger) error {
 	lis, err := net.Listen("tcp", grpcAddr)
 	if err != nil {
 		logger.Error("listen failed", "addr", grpcAddr, "err", err)
