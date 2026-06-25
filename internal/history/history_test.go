@@ -27,7 +27,7 @@ func eventTypes(events []persistence.Event) []string {
 func TestStartWorkflow_WritesStartedEventAndTask(t *testing.T) {
 	h, p, _ := testutil.SetupEngine(t)
 
-	runID, err := h.StartWorkflow(t.Context(), "order-1", "TestWorkflow", "default", []byte(`{"OrderID":1}"`))
+	runID, err := h.StartWorkflow(t.Context(), "order-1", "TestWorkflow", "default", []byte(`{"OrderID":1}`))
 	require.NoError(t, err)
 	require.NotEmpty(t, runID)
 
@@ -150,7 +150,7 @@ func TestActivityFailure_ExhaustsAndFailsWorkflow(t *testing.T) {
 //
 // ---------------------------------------------------------------------------
 
-func TestActivityRetyr_ReschedulesWithoutRetry(t *testing.T) {
+func TestActivityRetry_ReschedulesWithoutEvent(t *testing.T) {
 	h, p, _ := testutil.SetupEngine(t)
 
 	runID, err := h.StartWorkflow(t.Context(), "order-4", "TestWorkflow", "default", []byte(`{}`))
