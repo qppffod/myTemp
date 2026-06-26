@@ -9,6 +9,12 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// ErrNotFound is returned by point lookups (by primary key / latest) when no
+// matching row exists, so callers can distinguish "absent" from a real failure
+// via errors.Is. Queue polling (PollTask) is exempt: an empty queue is normal,
+// not an error, so it returns (nil, nil).
+var ErrNotFound = errors.New("not found")
+
 type Persistence struct {
 	db *pgxpool.Pool
 }
@@ -48,6 +54,9 @@ func (p *Persistence) GetWorkflowExecution(ctx context.Context, workflowID, runI
 		&w.StartedAt,
 		&w.ClosedAt,
 	); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
 		return nil, fmt.Errorf("scan workflow execution: %w", err)
 	}
 
@@ -77,6 +86,9 @@ func (p *Persistence) GetLatestExecution(ctx context.Context, workflowID string)
 		&w.StartedAt,
 		&w.ClosedAt,
 	); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
 		return nil, fmt.Errorf("scan latest execution: %w", err)
 	}
 
@@ -263,7 +275,7 @@ func (p *Persistence) GetTask(ctx context.Context, taskID int64) (*Task, error) 
 		&t.LeaseExpiresAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, nil
+		return nil, ErrNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("scan task: %w", err)

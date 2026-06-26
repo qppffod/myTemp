@@ -2,14 +2,25 @@ package history
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"log"
 	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/qppffod/myTemp/internal/persistence"
 )
+
+// ErrWorkflowAlreadyRunning is returned by StartWorkflow when an execution for
+// the same workflow ID is already in the Running state. It is a client/
+// precondition error, so the transport layer can map it to a distinct status
+// (e.g. gRPC codes.AlreadyExists) via errors.Is.
+var ErrWorkflowAlreadyRunning = errors.New("workflow already running")
+
+// ErrWorkflowNotRunning is returned when an operation requires a Running
+// execution but the workflow is in a terminal or absent state (e.g. signaling a
+// completed workflow). Maps to gRPC codes.FailedPrecondition.
+var ErrWorkflowNotRunning = errors.New("workflow not running")
 
 type History struct {
 	p      *persistence.Persistence
@@ -28,8 +39,11 @@ func (h *History) StartWorkflow(ctx context.Context, workflowID, workflowType, t
 	defer tx.Rollback(ctx)
 
 	existing, err := h.p.GetLatestExecution(ctx, workflowID)
+	if err != nil && !errors.Is(err, persistence.ErrNotFound) {
+		return "", fmt.Errorf("get latest execution: %w", err)
+	}
 	if err == nil && existing.Status == "Running" {
-		return "", fmt.Errorf("workflow %s is already running", workflowID)
+		return "", fmt.Errorf("%s: %w", workflowID, ErrWorkflowAlreadyRunning)
 	}
 
 	runID := uuid.New().String()
@@ -70,6 +84,7 @@ func (h *History) StartWorkflow(ctx context.Context, workflowID, workflowType, t
 	if err := tx.Commit(ctx); err != nil {
 		return "", fmt.Errorf("commit transaction: %w", err)
 	}
+
 	return runID, nil
 }
 
@@ -111,7 +126,7 @@ func (h *History) CompleteWorkflowTask(ctx context.Context, taskID int64, workfl
 				ActivityIndex: cmd.ActivityIndex,
 				Data:          cmd.Input,
 			}); err != nil {
-				return err
+				return fmt.Errorf("insert activity scheduled event: %w", err)
 			}
 
 			if err := h.p.InsertTask(ctx, tx, persistence.Task{
@@ -127,7 +142,7 @@ func (h *History) CompleteWorkflowTask(ctx context.Context, taskID int64, workfl
 				MaxAttempts:      DefaultRetryPolicy.MaxAttempts,
 				Input:            cmd.Input,
 			}); err != nil {
-				return err
+				return fmt.Errorf("insert activity task: %w", err)
 			}
 			nextEventID++
 
@@ -140,9 +155,8 @@ func (h *History) CompleteWorkflowTask(ctx context.Context, taskID int64, workfl
 				EventType:  "TimerStarted",
 				TimerIndex: cmd.TimerIndex,
 			}); err != nil {
-				return fmt.Errorf("insert timer started: %w", err)
+				return fmt.Errorf("insert timer started event: %w", err)
 			}
-			log.Printf("StartTimer: DurationMs=%d", cmd.DurationMs)
 			fireAt := time.Now().Add(time.Duration(cmd.DurationMs) * time.Millisecond)
 			if err := h.p.InsertTimer(ctx, tx, persistence.Timer{
 				WorkflowID: workflowID,
@@ -166,9 +180,8 @@ func (h *History) CompleteWorkflowTask(ctx context.Context, taskID int64, workfl
 				return fmt.Errorf("insert workflow completed event: %w", err)
 			}
 
-			err := h.p.UpdateWorkflowStatus(ctx, tx, workflowID, runID, "Completed")
-			if err != nil {
-				return err
+			if err := h.p.UpdateWorkflowStatus(ctx, tx, workflowID, runID, "Completed"); err != nil {
+				return fmt.Errorf("update workflow status: %w", err)
 			}
 
 		case "FailWorkflow":
@@ -183,9 +196,8 @@ func (h *History) CompleteWorkflowTask(ctx context.Context, taskID int64, workfl
 				return fmt.Errorf("insert workflow failed event: %w", err)
 			}
 
-			err := h.p.UpdateWorkflowStatus(ctx, tx, workflowID, runID, "Failed")
-			if err != nil {
-				return err
+			if err := h.p.UpdateWorkflowStatus(ctx, tx, workflowID, runID, "Failed"); err != nil {
+				return fmt.Errorf("update workflow status: %w", err)
 			}
 		}
 	}
@@ -206,7 +218,7 @@ func (h *History) CompleteActivityTask(ctx context.Context, taskID int64, workfl
 
 	task, err := h.p.GetTask(ctx, taskID)
 	if err != nil {
-		return fmt.Errorf("GetTask: %w", err)
+		return fmt.Errorf("get task: %w", err)
 	}
 
 	events, err := h.p.GetEvents(ctx, workflowID, runID)
@@ -224,7 +236,7 @@ func (h *History) CompleteActivityTask(ctx context.Context, taskID int64, workfl
 		ActivityIndex: task.ActivityIndex,
 		Data:          result,
 	}); err != nil {
-		return fmt.Errorf("insert complete activity event: %w", err)
+		return fmt.Errorf("insert activity completed event: %w", err)
 	}
 
 	if err := h.p.CompleteTask(ctx, tx, taskID); err != nil {
@@ -233,7 +245,7 @@ func (h *History) CompleteActivityTask(ctx context.Context, taskID int64, workfl
 
 	exec, err := h.p.GetWorkflowExecution(ctx, workflowID, runID)
 	if err != nil {
-		return fmt.Errorf("GetWorkflowExecution: %w", err)
+		return fmt.Errorf("get workflow execution: %w", err)
 	}
 	if err := h.p.InsertTask(ctx, tx, persistence.Task{
 		TaskQueue:        exec.TaskQueue,
@@ -243,7 +255,7 @@ func (h *History) CompleteActivityTask(ctx context.Context, taskID int64, workfl
 		RunID:            exec.RunID,
 		ScheduledEventID: nextEventID,
 	}); err != nil {
-		return fmt.Errorf("InsertTask: %w", err)
+		return fmt.Errorf("insert workflow task: %w", err)
 	}
 
 	return tx.Commit(ctx)
@@ -304,7 +316,7 @@ func (h *History) FailActivityTask(ctx context.Context, taskID int64, workflowID
 		ActivityIndex: task.ActivityIndex,
 		Data:          []byte(errMsg),
 	}); err != nil {
-		return fmt.Errorf("insert failed activity event: %w", err)
+		return fmt.Errorf("insert activity failed event: %w", err)
 	}
 
 	if err := h.p.CompleteTask(ctx, tx, taskID); err != nil {
@@ -333,18 +345,20 @@ func (h *History) FailActivityTask(ctx context.Context, taskID int64, workflowID
 func (h *History) ScanTimers(ctx context.Context) error {
 	tx, err := h.p.BeginTx(ctx)
 	if err != nil {
-		return fmt.Errorf("begin tx: %w", err)
+		return fmt.Errorf("begin transaction: %w", err)
 	}
 	defer tx.Rollback(ctx)
 
 	dueTimers, err := h.p.GetDueTimers(ctx, tx)
 	if err != nil {
-		return fmt.Errorf("GetDueTimers: %w", err)
+		return fmt.Errorf("get due timers: %w", err)
 	}
 
 	for _, timer := range dueTimers {
-
-		events, _ := h.p.GetEvents(ctx, timer.WorkflowID, timer.RunID)
+		events, err := h.p.GetEvents(ctx, timer.WorkflowID, timer.RunID)
+		if err != nil {
+			return fmt.Errorf("get events: %w", err)
+		}
 		nextEventID := int64(len(events)) + 1
 
 		if err := h.p.InsertEvent(ctx, tx, persistence.Event{
@@ -354,14 +368,17 @@ func (h *History) ScanTimers(ctx context.Context) error {
 			EventType:  "TimerFired",
 			TimerIndex: timer.TimerIndex,
 		}); err != nil {
-			return err
+			return fmt.Errorf("insert timer fired event: %w", err)
 		}
 
 		if err := h.p.MarkTimerFired(ctx, tx, timer.ID); err != nil {
-			return err
+			return fmt.Errorf("mark timer fired: %w", err)
 		}
 
-		exec, _ := h.p.GetWorkflowExecution(ctx, timer.WorkflowID, timer.RunID)
+		exec, err := h.p.GetWorkflowExecution(ctx, timer.WorkflowID, timer.RunID)
+		if err != nil {
+			return fmt.Errorf("get workflow execution: %w", err)
+		}
 		if err := h.p.InsertTask(ctx, tx, persistence.Task{
 			TaskQueue:        exec.TaskQueue,
 			TaskType:         "workflow",
@@ -370,7 +387,7 @@ func (h *History) ScanTimers(ctx context.Context) error {
 			RunID:            timer.RunID,
 			ScheduledEventID: nextEventID,
 		}); err != nil {
-			return err
+			return fmt.Errorf("insert workflow task: %w", err)
 		}
 	}
 
@@ -381,33 +398,33 @@ func (h *History) SignalWorkflow(ctx context.Context, workflowID, runID, signalN
 	if runID == "" {
 		exec, err := h.p.GetLatestExecution(ctx, workflowID)
 		if err != nil {
-			return fmt.Errorf("no running workflow for id %s: %w", workflowID, err)
+			return fmt.Errorf("get latest execution: %w", err)
 		}
 		runID = exec.RunID
 	}
 
 	tx, err := h.p.BeginTx(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("begin transaction: %w", err)
 	}
 	defer tx.Rollback(ctx)
 
-	// Verify the workflow is running
+	// Verify the workflow is running.
 	exec, err := h.p.GetWorkflowExecution(ctx, workflowID, runID)
 	if err != nil {
-		return err
+		return fmt.Errorf("get workflow execution: %w", err)
 	}
 	if exec.Status != "Running" {
-		return fmt.Errorf("cannot signal workflow in status %s", exec.Status)
+		return fmt.Errorf("status %s: %w", exec.Status, ErrWorkflowNotRunning)
 	}
 
 	events, err := h.p.GetEvents(ctx, workflowID, runID)
 	if err != nil {
-		return err
+		return fmt.Errorf("get events: %w", err)
 	}
 	nextEventID := int64(len(events)) + 1
 
-	// Append the SignalReceived event
+	// Append the SignalReceived event.
 	if err := h.p.InsertEvent(ctx, tx, persistence.Event{
 		WorkflowID: workflowID,
 		RunID:      runID,
@@ -416,10 +433,10 @@ func (h *History) SignalWorkflow(ctx context.Context, workflowID, runID, signalN
 		SignalName: signalName,
 		Data:       input,
 	}); err != nil {
-		return err
+		return fmt.Errorf("insert signal received event: %w", err)
 	}
 
-	// Create a workflow task so the workflow replays and sees the signal
+	// Create a workflow task so the workflow replays and sees the signal.
 	if err := h.p.InsertWorkflowTaskIfNotExists(ctx, tx, persistence.Task{
 		TaskQueue:        exec.TaskQueue,
 		TaskType:         "workflow",
@@ -428,7 +445,7 @@ func (h *History) SignalWorkflow(ctx context.Context, workflowID, runID, signalN
 		RunID:            runID,
 		ScheduledEventID: nextEventID,
 	}); err != nil {
-		return err
+		return fmt.Errorf("insert workflow task: %w", err)
 	}
 
 	return tx.Commit(ctx)

@@ -31,7 +31,7 @@ func (h *Handler) StartWorkflow(ctx context.Context, req *pb.StartWorkflowReques
 			"workflow_id", req.WorkflowId,
 			"error", err,
 		)
-		return nil, err
+		return nil, toStatus(err)
 	}
 	return &pb.StartWorkflowResponse{RunId: runID}, nil
 }
@@ -42,7 +42,7 @@ func (h *Handler) PollWorkflowTask(ctx context.Context, req *pb.PollWorkflowTask
 	task, err := h.persistence.PollTask(ctx, req.TaskQueue, "workflow", req.LeaseOwner)
 	if err != nil {
 		logger.Error("rpc failed", "task_queue", req.TaskQueue, "error", err)
-		return &pb.PollWorkflowTaskResponse{}, err
+		return &pb.PollWorkflowTaskResponse{}, toStatus(err)
 	}
 	if task == nil {
 		return &pb.PollWorkflowTaskResponse{}, nil
@@ -56,7 +56,7 @@ func (h *Handler) PollWorkflowTask(ctx context.Context, req *pb.PollWorkflowTask
 			"task_id", task.ID,
 			"error", err,
 		)
-		return nil, err
+		return nil, toStatus(err)
 	}
 
 	return &pb.PollWorkflowTaskResponse{
@@ -76,7 +76,7 @@ func (h *Handler) RespondWorkflowTaskCompleted(ctx context.Context, req *pb.Resp
 			"task_id", req.TaskId,
 			"error", err,
 		)
-		return &pb.RespondWorkflowTaskCompletedResponse{}, err
+		return &pb.RespondWorkflowTaskCompletedResponse{}, toStatus(err)
 	}
 	return &pb.RespondWorkflowTaskCompletedResponse{}, nil
 }
@@ -85,7 +85,7 @@ func (h *Handler) PollActivityTask(ctx context.Context, req *pb.PollActivityTask
 	task, err := h.persistence.PollTask(ctx, req.TaskQueue, "activity", req.LeaseOwner)
 	if err != nil {
 		loggerFrom(ctx, h.logger).Error("rpc failed", "task_queue", req.TaskQueue, "error", err)
-		return &pb.PollActivityTaskResponse{}, err
+		return &pb.PollActivityTaskResponse{}, toStatus(err)
 	}
 	if task == nil {
 		return &pb.PollActivityTaskResponse{}, nil
@@ -108,7 +108,7 @@ func (h *Handler) RespondActivityTaskCompleted(ctx context.Context, req *pb.Resp
 			"task_id", req.TaskId,
 			"error", err,
 		)
-		return &pb.RespondActivityTaskCompletedResponse{}, err
+		return &pb.RespondActivityTaskCompletedResponse{}, toStatus(err)
 	}
 	return &pb.RespondActivityTaskCompletedResponse{}, nil
 }
@@ -121,7 +121,7 @@ func (h *Handler) RespondActivityTaskFailed(ctx context.Context, req *pb.Respond
 			"task_id", req.TaskId,
 			"error", err,
 		)
-		return &pb.RespondActivityTaskFailedResponse{}, err
+		return &pb.RespondActivityTaskFailedResponse{}, toStatus(err)
 	}
 	return &pb.RespondActivityTaskFailedResponse{}, nil
 }
@@ -134,7 +134,7 @@ func (h *Handler) SignalWorkflow(ctx context.Context, req *pb.SignalWorkflowRequ
 			"signal_name", req.SignalName,
 			"error", err,
 		)
-		return &pb.SignalWorkflowResponse{}, err
+		return &pb.SignalWorkflowResponse{}, toStatus(err)
 	}
 	return &pb.SignalWorkflowResponse{}, nil
 }
