@@ -21,7 +21,9 @@ func Start(ctx context.Context, handler *grpcHandlers.Handler, logger *slog.Logg
 		return fmt.Errorf("listen on %s: %w", grpcAddr, err)
 	}
 
-	srv := grpc.NewServer()
+	srv := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(grpcHandlers.LoggingInterceptor(logger)),
+	)
 	enginev1.RegisterEngineServiceServer(srv, handler)
 	reflection.Register(srv)
 

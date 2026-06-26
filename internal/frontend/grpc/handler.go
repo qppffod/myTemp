@@ -24,22 +24,38 @@ func New(p *persistence.Persistence, h *history.History, logger *slog.Logger) *H
 	}
 }
 
-func (s *Handler) StartWorkflow(ctx context.Context, req *pb.StartWorkflowRequest) (*pb.StartWorkflowResponse, error) {
-	runID, err := s.history.StartWorkflow(ctx, req.WorkflowId, req.WorkflowType, req.TaskQueue, req.Input)
+func (h *Handler) StartWorkflow(ctx context.Context, req *pb.StartWorkflowRequest) (*pb.StartWorkflowResponse, error) {
+	runID, err := h.history.StartWorkflow(ctx, req.WorkflowId, req.WorkflowType, req.TaskQueue, req.Input)
 	if err != nil {
+		loggerFrom(ctx, h.logger).Error("rpc failed",
+			"workflow_id", req.WorkflowId,
+			"error", err,
+		)
 		return nil, err
 	}
 	return &pb.StartWorkflowResponse{RunId: runID}, nil
 }
 
 func (h *Handler) PollWorkflowTask(ctx context.Context, req *pb.PollWorkflowTaskRequest) (*pb.PollWorkflowTaskResponse, error) {
+	logger := loggerFrom(ctx, h.logger)
+
 	task, err := h.persistence.PollTask(ctx, req.TaskQueue, "workflow", req.LeaseOwner)
-	if err != nil || task == nil {
+	if err != nil {
+		logger.Error("rpc failed", "task_queue", req.TaskQueue, "error", err)
 		return &pb.PollWorkflowTaskResponse{}, err
+	}
+	if task == nil {
+		return &pb.PollWorkflowTaskResponse{}, nil
 	}
 
 	events, err := h.persistence.GetEvents(ctx, task.WorkflowID, task.RunID)
 	if err != nil {
+		logger.Error("rpc failed",
+			"workflow_id", task.WorkflowID,
+			"run_id", task.RunID,
+			"task_id", task.ID,
+			"error", err,
+		)
 		return nil, err
 	}
 
@@ -53,14 +69,26 @@ func (h *Handler) PollWorkflowTask(ctx context.Context, req *pb.PollWorkflowTask
 }
 
 func (h *Handler) RespondWorkflowTaskCompleted(ctx context.Context, req *pb.RespondWorkflowTaskCompletedRequest) (*pb.RespondWorkflowTaskCompletedResponse, error) {
-	err := h.history.CompleteWorkflowTask(ctx, req.TaskId, req.WorkflowId, req.RunId, unmarshalCommands(req.Commands))
-	return &pb.RespondWorkflowTaskCompletedResponse{}, err
+	if err := h.history.CompleteWorkflowTask(ctx, req.TaskId, req.WorkflowId, req.RunId, unmarshalCommands(req.Commands)); err != nil {
+		loggerFrom(ctx, h.logger).Error("rpc failed",
+			"workflow_id", req.WorkflowId,
+			"run_id", req.RunId,
+			"task_id", req.TaskId,
+			"error", err,
+		)
+		return &pb.RespondWorkflowTaskCompletedResponse{}, err
+	}
+	return &pb.RespondWorkflowTaskCompletedResponse{}, nil
 }
 
 func (h *Handler) PollActivityTask(ctx context.Context, req *pb.PollActivityTaskRequest) (*pb.PollActivityTaskResponse, error) {
 	task, err := h.persistence.PollTask(ctx, req.TaskQueue, "activity", req.LeaseOwner)
-	if err != nil || task == nil {
+	if err != nil {
+		loggerFrom(ctx, h.logger).Error("rpc failed", "task_queue", req.TaskQueue, "error", err)
 		return &pb.PollActivityTaskResponse{}, err
+	}
+	if task == nil {
+		return &pb.PollActivityTaskResponse{}, nil
 	}
 
 	return &pb.PollActivityTaskResponse{
@@ -73,18 +101,42 @@ func (h *Handler) PollActivityTask(ctx context.Context, req *pb.PollActivityTask
 }
 
 func (h *Handler) RespondActivityTaskCompleted(ctx context.Context, req *pb.RespondActivityTaskCompletedRequest) (*pb.RespondActivityTaskCompletedResponse, error) {
-	err := h.history.CompleteActivityTask(ctx, req.TaskId, req.WorkflowId, req.RunId, req.Result)
-	return &pb.RespondActivityTaskCompletedResponse{}, err
+	if err := h.history.CompleteActivityTask(ctx, req.TaskId, req.WorkflowId, req.RunId, req.Result); err != nil {
+		loggerFrom(ctx, h.logger).Error("rpc failed",
+			"workflow_id", req.WorkflowId,
+			"run_id", req.RunId,
+			"task_id", req.TaskId,
+			"error", err,
+		)
+		return &pb.RespondActivityTaskCompletedResponse{}, err
+	}
+	return &pb.RespondActivityTaskCompletedResponse{}, nil
 }
 
 func (h *Handler) RespondActivityTaskFailed(ctx context.Context, req *pb.RespondActivityTaskFailedRequest) (*pb.RespondActivityTaskFailedResponse, error) {
-	err := h.history.FailActivityTask(ctx, req.TaskId, req.WorkflowId, req.RunId, req.Error)
-	return &pb.RespondActivityTaskFailedResponse{}, err
+	if err := h.history.FailActivityTask(ctx, req.TaskId, req.WorkflowId, req.RunId, req.Error); err != nil {
+		loggerFrom(ctx, h.logger).Error("rpc failed",
+			"workflow_id", req.WorkflowId,
+			"run_id", req.RunId,
+			"task_id", req.TaskId,
+			"error", err,
+		)
+		return &pb.RespondActivityTaskFailedResponse{}, err
+	}
+	return &pb.RespondActivityTaskFailedResponse{}, nil
 }
 
 func (h *Handler) SignalWorkflow(ctx context.Context, req *pb.SignalWorkflowRequest) (*pb.SignalWorkflowResponse, error) {
-	err := h.history.SignalWorkflow(ctx, req.WorkflowId, req.RunId, req.SignalName, req.Input)
-	return &pb.SignalWorkflowResponse{}, err
+	if err := h.history.SignalWorkflow(ctx, req.WorkflowId, req.RunId, req.SignalName, req.Input); err != nil {
+		loggerFrom(ctx, h.logger).Error("rpc failed",
+			"workflow_id", req.WorkflowId,
+			"run_id", req.RunId,
+			"signal_name", req.SignalName,
+			"error", err,
+		)
+		return &pb.SignalWorkflowResponse{}, err
+	}
+	return &pb.SignalWorkflowResponse{}, nil
 }
 
 func unmarshalCommands(commands []*pb.Command) []history.Command {
