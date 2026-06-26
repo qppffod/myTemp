@@ -20,12 +20,14 @@ func New(db *pgxpool.Pool) *Persistence {
 }
 
 func (p *Persistence) InsertWorkflowExecution(ctx context.Context, tx pgx.Tx, w WorkflowExecution) error {
-	_, err := tx.Exec(ctx,
+	if _, err := tx.Exec(ctx,
 		`INSERT INTO workflow_executions (workflow_id, run_id, workflow_type, task_queue, status)
 		VALUES ($1, $2, $3, $4, $5)`,
 		w.WorkflowID, w.RunID, w.WorkflowType, w.TaskQueue, w.Status,
-	)
-	return err
+	); err != nil {
+		return fmt.Errorf("insert workflow execution: %w", err)
+	}
+	return nil
 }
 
 func (p *Persistence) GetWorkflowExecution(ctx context.Context, workflowID, runID string) (*WorkflowExecution, error) {
@@ -37,7 +39,7 @@ func (p *Persistence) GetWorkflowExecution(ctx context.Context, workflowID, runI
 	)
 
 	var w WorkflowExecution
-	err := row.Scan(
+	if err := row.Scan(
 		&w.WorkflowID,
 		&w.RunID,
 		&w.WorkflowType,
@@ -45,9 +47,8 @@ func (p *Persistence) GetWorkflowExecution(ctx context.Context, workflowID, runI
 		&w.Status,
 		&w.StartedAt,
 		&w.ClosedAt,
-	)
-	if err != nil {
-		return nil, err
+	); err != nil {
+		return nil, fmt.Errorf("scan workflow execution: %w", err)
 	}
 
 	return &w, nil
@@ -67,7 +68,7 @@ func (p *Persistence) GetLatestExecution(ctx context.Context, workflowID string)
 	)
 
 	var w WorkflowExecution
-	err := row.Scan(
+	if err := row.Scan(
 		&w.WorkflowID,
 		&w.RunID,
 		&w.WorkflowType,
@@ -75,36 +76,39 @@ func (p *Persistence) GetLatestExecution(ctx context.Context, workflowID string)
 		&w.Status,
 		&w.StartedAt,
 		&w.ClosedAt,
-	)
-	if err != nil {
-		return nil, err
+	); err != nil {
+		return nil, fmt.Errorf("scan latest execution: %w", err)
 	}
 
 	return &w, nil
 }
 
 func (p *Persistence) UpdateWorkflowStatus(ctx context.Context, tx pgx.Tx, workflowID, runID, status string) error {
-	_, err := tx.Exec(ctx,
+	if _, err := tx.Exec(ctx,
 		`UPDATE workflow_executions
 		 SET status = $1,
 		 	closed_at = CASE WHEN $1 IN ('Completed', 'Failed', 'Canceled') THEN now() ELSE closed_at END
 		 WHERE workflow_id = $2 AND run_id = $3`,
 		status, workflowID, runID,
-	)
-	return err
+	); err != nil {
+		return fmt.Errorf("update workflow status: %w", err)
+	}
+	return nil
 }
 
 func (p *Persistence) InsertEvent(ctx context.Context, tx pgx.Tx, e Event) error {
 	if e.Data == nil {
 		e.Data = []byte{}
 	}
-	_, err := tx.Exec(ctx,
+	if _, err := tx.Exec(ctx,
 		`INSERT INTO events (workflow_id, run_id, event_id, event_type, activity_name,
 							 activity_index, signal_name, timer_index, data)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
 		e.WorkflowID, e.RunID, e.EventID, e.EventType, e.ActivityName, e.ActivityIndex, e.SignalName, e.TimerIndex, e.Data,
-	)
-	return err
+	); err != nil {
+		return fmt.Errorf("insert event: %w", err)
+	}
+	return nil
 }
 
 func (p *Persistence) GetEvents(ctx context.Context, workflowID, runID string) ([]Event, error) {
@@ -116,7 +120,7 @@ func (p *Persistence) GetEvents(ctx context.Context, workflowID, runID string) (
 		workflowID, runID,
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("query events: %w", err)
 	}
 	defer rows.Close()
 
@@ -138,21 +142,21 @@ func (p *Persistence) GetEvents(ctx context.Context, workflowID, runID string) (
 			&e.Data,
 			&e.CreatedAt,
 		); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("scan event: %w", err)
 		}
 
 		events = append(events, e)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("iterate events: %w", err)
 	}
 
 	return events, nil
 }
 
 func (p *Persistence) InsertTask(ctx context.Context, tx pgx.Tx, t Task) error {
-	_, err := tx.Exec(ctx,
+	if _, err := tx.Exec(ctx,
 		`INSERT INTO tasks (task_queue, task_type, workflow_type, workflow_id, run_id,
 							scheduled_event_id, input, activity_name, activity_index,
 							attempt, max_attempts, visibility_time, lease_owner, lease_expires_at)
@@ -160,8 +164,10 @@ func (p *Persistence) InsertTask(ctx context.Context, tx pgx.Tx, t Task) error {
 		t.TaskQueue, t.TaskType, t.WorkflowType, t.WorkflowID, t.RunID, t.ScheduledEventID,
 		t.Input, t.ActivityName, t.ActivityIndex, t.Attempt, t.MaxAttempts, t.VisibilityTime,
 		t.LeaseOwner, t.LeaseExpiresAt,
-	)
-	return err
+	); err != nil {
+		return fmt.Errorf("insert task: %w", err)
+	}
+	return nil
 }
 
 func (p *Persistence) PollTask(ctx context.Context, queue, taskType, leaseOwner string) (*Task, error) {
@@ -205,10 +211,10 @@ func (p *Persistence) PollTask(ctx context.Context, queue, taskType, leaseOwner 
 		&t.LeaseExpiresAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, nil // no task availabe, not an error
+		return nil, nil // no task available, not an error
 	}
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("scan task: %w", err)
 	}
 
 	if _, err := tx.Exec(ctx,
@@ -218,7 +224,7 @@ func (p *Persistence) PollTask(ctx context.Context, queue, taskType, leaseOwner 
 		 WHERE id = $2`,
 		leaseOwner, t.ID,
 	); err != nil {
-		return nil, fmt.Errorf("Set lease_owner: %w", err)
+		return nil, fmt.Errorf("set lease owner: %w", err)
 	}
 
 	if err := tx.Commit(ctx); err != nil {
@@ -259,39 +265,44 @@ func (p *Persistence) GetTask(ctx context.Context, taskID int64) (*Task, error) 
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
-
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("scan task: %w", err)
 	}
 
 	return &t, nil
 }
 
 func (p *Persistence) ReclaimExpiredLeases(ctx context.Context) error {
-	_, err := p.db.Exec(ctx,
+	if _, err := p.db.Exec(ctx,
 		`UPDATE tasks
 		 SET lease_owner = NULL,
 		 	 lease_expires_at = NULL
-		 WHERE lease_owner IS NOT NULL AND lease_expires_at < now()`)
-	return err
+		 WHERE lease_owner IS NOT NULL AND lease_expires_at < now()`); err != nil {
+		return fmt.Errorf("reclaim expired leases: %w", err)
+	}
+	return nil
 }
 
 func (p *Persistence) CompleteTask(ctx context.Context, tx pgx.Tx, taskID int64) error {
-	_, err := tx.Exec(ctx,
+	if _, err := tx.Exec(ctx,
 		`DELETE FROM tasks
 		 WHERE id = $1`,
 		taskID,
-	)
-	return err
+	); err != nil {
+		return fmt.Errorf("complete task: %w", err)
+	}
+	return nil
 }
 
 func (p *Persistence) InsertTimer(ctx context.Context, tx pgx.Tx, t Timer) error {
-	_, err := tx.Exec(ctx,
+	if _, err := tx.Exec(ctx,
 		`INSERT INTO timers (workflow_id, run_id, timer_index, fire_at)
 		 VALUES ($1, $2, $3, $4)`,
 		t.WorkflowID, t.RunID, t.TimerIndex, t.FireAt,
-	)
-	return err
+	); err != nil {
+		return fmt.Errorf("insert timer: %w", err)
+	}
+	return nil
 }
 
 func (p *Persistence) GetDueTimers(ctx context.Context, tx pgx.Tx) ([]Timer, error) {
@@ -304,7 +315,7 @@ func (p *Persistence) GetDueTimers(ctx context.Context, tx pgx.Tx) ([]Timer, err
 		 LIMIT 100`,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("GetDueTimers: %w", err)
+		return nil, fmt.Errorf("query due timers: %w", err)
 	}
 	defer rows.Close()
 
@@ -327,25 +338,27 @@ func (p *Persistence) GetDueTimers(ctx context.Context, tx pgx.Tx) ([]Timer, err
 		timers = append(timers, t)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("iterate timers: %w", err)
 	}
 
 	return timers, nil
 }
 
 func (p *Persistence) MarkTimerFired(ctx context.Context, tx pgx.Tx, timerID int64) error {
-	_, err := tx.Exec(ctx,
+	if _, err := tx.Exec(ctx,
 		`UPDATE timers
 		 SET fired = true
 		 WHERE id = $1
 		 	AND fired = false`,
 		timerID,
-	)
-	return err
+	); err != nil {
+		return fmt.Errorf("mark timer fired: %w", err)
+	}
+	return nil
 }
 
 func (p *Persistence) InsertWorkflowTaskIfNotExists(ctx context.Context, tx pgx.Tx, t Task) error {
-	_, err := tx.Exec(ctx, `
+	if _, err := tx.Exec(ctx, `
         INSERT INTO tasks (task_queue, task_type, workflow_type,
                            workflow_id, run_id, scheduled_event_id, activity_name)
         SELECT $1, $2, $3, $4, $5, $6, ''
@@ -354,8 +367,10 @@ func (p *Persistence) InsertWorkflowTaskIfNotExists(ctx context.Context, tx pgx.
             WHERE workflow_id = $4 AND run_id = $5 AND task_type = 'workflow'
         )`,
 		t.TaskQueue, t.TaskType, t.WorkflowType, t.WorkflowID, t.RunID, t.ScheduledEventID,
-	)
-	return err
+	); err != nil {
+		return fmt.Errorf("insert workflow task: %w", err)
+	}
+	return nil
 }
 
 func (p *Persistence) BeginTx(ctx context.Context) (pgx.Tx, error) {
