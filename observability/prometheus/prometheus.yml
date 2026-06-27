@@ -1,0 +1,19 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  # The myTemp engine exposes its metrics on :2112 (see cmd/engine/main.go).
+  # The engine typically runs on the host (`make grun`), while this Prometheus
+  # runs in Docker, so we reach the host via host.docker.internal. The compose
+  # file maps that name to host-gateway for Linux.
+  - job_name: myengine
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["host.docker.internal:2112"]
+        labels:
+          service: myengine
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
