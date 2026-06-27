@@ -7,7 +7,9 @@ import (
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/qppffod/myTemp/internal/history"
+	"github.com/qppffod/myTemp/internal/metrics"
 	"github.com/qppffod/myTemp/internal/persistence"
 	"github.com/qppffod/myTemp/migrations"
 	"github.com/stretchr/testify/require"
@@ -22,7 +24,8 @@ func SetupEngine(t *testing.T) (*history.History, *persistence.Persistence, *pgx
 	t.Cleanup(clean)
 	p := persistence.New(pool)
 	logger := slog.New(slog.NewJSONHandler(io.Discard, nil))
-	h := history.New(p, logger)
+	m := metrics.New(prometheus.NewRegistry())
+	h := history.New(p, logger, m)
 	return h, p, pool
 }
 

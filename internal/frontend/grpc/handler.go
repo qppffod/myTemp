@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/qppffod/myTemp/internal/history"
+	"github.com/qppffod/myTemp/internal/metrics"
 	"github.com/qppffod/myTemp/internal/persistence"
 	pb "github.com/qppffod/myTemp/proto/engine/v1"
 )
@@ -14,13 +15,15 @@ type Handler struct {
 	persistence *persistence.Persistence
 	history     *history.History
 	logger      *slog.Logger
+	metrics     *metrics.Metrics
 }
 
-func New(p *persistence.Persistence, h *history.History, logger *slog.Logger) *Handler {
+func New(p *persistence.Persistence, h *history.History, logger *slog.Logger, m *metrics.Metrics) *Handler {
 	return &Handler{
 		persistence: p,
 		history:     h,
 		logger:      logger,
+		metrics:     m,
 	}
 }
 
@@ -45,8 +48,11 @@ func (h *Handler) PollWorkflowTask(ctx context.Context, req *pb.PollWorkflowTask
 		return &pb.PollWorkflowTaskResponse{}, toStatus(err)
 	}
 	if task == nil {
+		h.metrics.TaskPolls.WithLabelValues("workflow", "miss").Inc()
 		return &pb.PollWorkflowTaskResponse{}, nil
 	}
+	// hit counted at lease time, before GetEvents
+	h.metrics.TaskPolls.WithLabelValues("workflow", "hit").Inc()
 
 	events, err := h.persistence.GetEvents(ctx, task.WorkflowID, task.RunID)
 	if err != nil {
@@ -88,8 +94,10 @@ func (h *Handler) PollActivityTask(ctx context.Context, req *pb.PollActivityTask
 		return &pb.PollActivityTaskResponse{}, toStatus(err)
 	}
 	if task == nil {
+		h.metrics.TaskPolls.WithLabelValues("activity", "miss").Inc()
 		return &pb.PollActivityTaskResponse{}, nil
 	}
+	h.metrics.TaskPolls.WithLabelValues("activity", "hit").Inc()
 
 	return &pb.PollActivityTaskResponse{
 		TaskId:       task.ID,

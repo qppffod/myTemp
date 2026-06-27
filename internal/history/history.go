@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/qppffod/myTemp/internal/metrics"
 	"github.com/qppffod/myTemp/internal/persistence"
 )
 
@@ -23,12 +24,13 @@ var ErrWorkflowAlreadyRunning = errors.New("workflow already running")
 var ErrWorkflowNotRunning = errors.New("workflow not running")
 
 type History struct {
-	p      *persistence.Persistence
-	logger *slog.Logger
+	p       *persistence.Persistence
+	logger  *slog.Logger
+	metrics *metrics.Metrics
 }
 
-func New(p *persistence.Persistence, logger *slog.Logger) *History {
-	return &History{p: p, logger: logger}
+func New(p *persistence.Persistence, logger *slog.Logger, m *metrics.Metrics) *History {
+	return &History{p: p, logger: logger, metrics: m}
 }
 
 func (h *History) StartWorkflow(ctx context.Context, workflowID, workflowType, taskQueue string, input []byte) (string, error) {
@@ -84,6 +86,7 @@ func (h *History) StartWorkflow(ctx context.Context, workflowID, workflowType, t
 	if err := tx.Commit(ctx); err != nil {
 		return "", fmt.Errorf("commit transaction: %w", err)
 	}
+	h.metrics.WorkflowsStarted.Inc()
 
 	return runID, nil
 }
@@ -113,6 +116,11 @@ func (h *History) CompleteWorkflowTask(ctx context.Context, taskID int64, workfl
 	}
 	nextEventID := int64(len(events)) + 1
 
+	// Tally the durable outcomes applied in this transaction; the counters are
+	// incremented only after a successful commit (a task can carry several
+	// commands, e.g. multiple scheduled activities).
+	var scheduled, timersStarted, completed, failed int
+
 	for _, cmd := range commands {
 		switch cmd.Type {
 		case "ScheduleActivity":
@@ -128,6 +136,7 @@ func (h *History) CompleteWorkflowTask(ctx context.Context, taskID int64, workfl
 			}); err != nil {
 				return fmt.Errorf("insert activity scheduled event: %w", err)
 			}
+			scheduled++
 
 			if err := h.p.InsertTask(ctx, tx, persistence.Task{
 				TaskQueue:        cmd.TaskQueue,
@@ -166,6 +175,7 @@ func (h *History) CompleteWorkflowTask(ctx context.Context, taskID int64, workfl
 			}); err != nil {
 				return fmt.Errorf("insert timer: %w", err)
 			}
+			timersStarted++
 
 			nextEventID++
 
@@ -183,6 +193,7 @@ func (h *History) CompleteWorkflowTask(ctx context.Context, taskID int64, workfl
 			if err := h.p.UpdateWorkflowStatus(ctx, tx, workflowID, runID, "Completed"); err != nil {
 				return fmt.Errorf("update workflow status: %w", err)
 			}
+			completed++
 
 		case "FailWorkflow":
 			if err := h.p.InsertEvent(ctx, tx, persistence.Event{
@@ -199,6 +210,7 @@ func (h *History) CompleteWorkflowTask(ctx context.Context, taskID int64, workfl
 			if err := h.p.UpdateWorkflowStatus(ctx, tx, workflowID, runID, "Failed"); err != nil {
 				return fmt.Errorf("update workflow status: %w", err)
 			}
+			failed++
 		}
 	}
 
@@ -206,7 +218,15 @@ func (h *History) CompleteWorkflowTask(ctx context.Context, taskID int64, workfl
 		return fmt.Errorf("complete workflow task: %w", err)
 	}
 
-	return tx.Commit(ctx)
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("commit transaction: %w", err)
+	}
+	h.metrics.ActivitiesScheduled.Add(float64(scheduled))
+	h.metrics.TimersStarted.Add(float64(timersStarted))
+	h.metrics.WorkflowsTerminated.WithLabelValues("completed").Add(float64(completed))
+	h.metrics.WorkflowsTerminated.WithLabelValues("failed").Add(float64(failed))
+
+	return nil
 }
 
 func (h *History) CompleteActivityTask(ctx context.Context, taskID int64, workflowID, runID string, result []byte) error {
@@ -258,7 +278,12 @@ func (h *History) CompleteActivityTask(ctx context.Context, taskID int64, workfl
 		return fmt.Errorf("insert workflow task: %w", err)
 	}
 
-	return tx.Commit(ctx)
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("commit transaction: %w", err)
+	}
+	h.metrics.ActivitiesFinished.WithLabelValues("completed").Inc()
+
+	return nil
 }
 
 func (h *History) FailActivityTask(ctx context.Context, taskID int64, workflowID, runID, errMsg string) error {
@@ -298,7 +323,12 @@ func (h *History) FailActivityTask(ctx context.Context, taskID int64, workflowID
 			return fmt.Errorf("reschedule activity: %w", err)
 		}
 
-		return tx.Commit(ctx)
+		if err := tx.Commit(ctx); err != nil {
+			return fmt.Errorf("commit transaction: %w", err)
+		}
+		h.metrics.ActivityRetries.Inc()
+
+		return nil
 	}
 
 	events, err := h.p.GetEvents(ctx, workflowID, runID)
@@ -339,7 +369,12 @@ func (h *History) FailActivityTask(ctx context.Context, taskID int64, workflowID
 		return fmt.Errorf("insert workflow task: %w", err)
 	}
 
-	return tx.Commit(ctx)
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("commit transaction: %w", err)
+	}
+	h.metrics.ActivitiesFinished.WithLabelValues("failed").Inc()
+
+	return nil
 }
 
 func (h *History) ScanTimers(ctx context.Context) error {
@@ -391,7 +426,12 @@ func (h *History) ScanTimers(ctx context.Context) error {
 		}
 	}
 
-	return tx.Commit(ctx)
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("commit transaction: %w", err)
+	}
+	h.metrics.TimersFired.Add(float64(len(dueTimers)))
+
+	return nil
 }
 
 func (h *History) SignalWorkflow(ctx context.Context, workflowID, runID, signalName string, input []byte) error {
@@ -424,7 +464,6 @@ func (h *History) SignalWorkflow(ctx context.Context, workflowID, runID, signalN
 	}
 	nextEventID := int64(len(events)) + 1
 
-	// Append the SignalReceived event.
 	if err := h.p.InsertEvent(ctx, tx, persistence.Event{
 		WorkflowID: workflowID,
 		RunID:      runID,
@@ -436,7 +475,6 @@ func (h *History) SignalWorkflow(ctx context.Context, workflowID, runID, signalN
 		return fmt.Errorf("insert signal received event: %w", err)
 	}
 
-	// Create a workflow task so the workflow replays and sees the signal.
 	if err := h.p.InsertWorkflowTaskIfNotExists(ctx, tx, persistence.Task{
 		TaskQueue:        exec.TaskQueue,
 		TaskType:         "workflow",
@@ -448,5 +486,10 @@ func (h *History) SignalWorkflow(ctx context.Context, workflowID, runID, signalN
 		return fmt.Errorf("insert workflow task: %w", err)
 	}
 
-	return tx.Commit(ctx)
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("commit transaction: %w", err)
+	}
+	h.metrics.SignalsDelivered.Inc()
+
+	return nil
 }

@@ -284,15 +284,16 @@ func (p *Persistence) GetTask(ctx context.Context, taskID int64) (*Task, error) 
 	return &t, nil
 }
 
-func (p *Persistence) ReclaimExpiredLeases(ctx context.Context) error {
-	if _, err := p.db.Exec(ctx,
+func (p *Persistence) ReclaimExpiredLeases(ctx context.Context) (int64, error) {
+	tag, err := p.db.Exec(ctx,
 		`UPDATE tasks
 		 SET lease_owner = NULL,
 		 	 lease_expires_at = NULL
-		 WHERE lease_owner IS NOT NULL AND lease_expires_at < now()`); err != nil {
-		return fmt.Errorf("reclaim expired leases: %w", err)
+		 WHERE lease_owner IS NOT NULL AND lease_expires_at < now()`)
+	if err != nil {
+		return 0, fmt.Errorf("reclaim expired leases: %w", err)
 	}
-	return nil
+	return tag.RowsAffected(), nil
 }
 
 func (p *Persistence) CompleteTask(ctx context.Context, tx pgx.Tx, taskID int64) error {
