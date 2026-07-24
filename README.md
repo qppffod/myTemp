@@ -39,9 +39,13 @@ tiny Go SDK for authoring workflows and activities.
 ```
 
 - **engine** (`cmd/engine`) — the source of truth, backed by Postgres. Layered:
-  - `internal/frontend` — gRPC server bootstrap (listens on `:7233`).
+  - `internal/frontend` — gRPC server bootstrap (listens on `:7233`), wiring in
+    the logging + Prometheus interceptors and reflection.
   - `internal/frontend/grpc` — `EngineService` RPC handlers; a thin translation
-    layer between protobuf and the internal types.
+    layer between protobuf and the internal types, including the request-logging
+    interceptor and domain-error → gRPC status mapping.
+  - `internal/metrics` — the engine's Prometheus domain counters, incremented by
+    the history layer as transactions commit.
   - `internal/history` — the business logic of durable execution; owns all
     multi-statement transactions (start workflow, turn worker commands into
     events + tasks).
@@ -99,10 +103,10 @@ The same replay model powers the richer primitives:
 A full end-to-end run needs **three processes**: engine + worker + api.
 
 ```bash
-# 1. Start Postgres (schema is auto-migrated on engine boot)
+# 1. Start Postgres + Prometheus + Grafana (schema is auto-migrated on engine boot)
 docker compose up -d
 
-# 2. Run the engine (gRPC on :7233; runs ./migrations first)
+# 2. Run the engine (gRPC on :7233, metrics on :2112; runs ./migrations first)
 make grun            # == go run ./cmd/engine
 
 # 3. Run the example worker (connects to localhost:7233)
@@ -132,7 +136,36 @@ curl -XPOST localhost:3000/approve
 
 The engine reads `DATABASE_URL` (defaults to
 `postgres://postgres:password@localhost:5432/myengine?sslmode=disable`, matching
-`docker-compose.yml`).
+`docker-compose.yml`). Set `DEBUG=1` to raise the log level from info to debug.
+
+## Observability
+
+`docker compose up -d` brings up a full metrics stack alongside Postgres:
+
+| Service    | URL                              | Notes                                     |
+| ---------- | -------------------------------- | ----------------------------------------- |
+| engine     | `http://localhost:2112/metrics`  | Prometheus exposition (host process)      |
+| Prometheus | `http://localhost:9090`          | scrapes the engine every 5s               |
+| Grafana    | `http://localhost:3001`          | anonymous viewer; `admin`/`admin` to edit |
+
+Because the engine typically runs on the host (`make grun`) while Prometheus
+runs in Docker, the scrape config reaches it via `host.docker.internal:2112`
+(mapped to the host gateway for Linux in `docker-compose.yml`).
+
+Three families of metrics are exported on `:2112/metrics`:
+
+- **Domain counters** (`myengine_*`, defined in `internal/metrics`) — workflows
+  started / terminated, activities scheduled / finished, activity retries,
+  timers started / fired, signals delivered, leases reclaimed, and task polls.
+  These are incremented **after** the owning transaction commits, so they track
+  durable outcomes rather than rolled-back attempts.
+- **gRPC server metrics** — per-method request counts and handling-time
+  histograms, pre-initialized to zero so every series exists before the first
+  request.
+- **Go runtime / process collectors** — standard `go_*` and `process_*` series.
+
+Grafana auto-provisions the Prometheus datasource and the `myengine` dashboard
+from `observability/`.
 
 ## Writing a workflow
 
@@ -214,9 +247,26 @@ func ApprovalWorkflow(c *workflow.Context, order PizzaOrder) error {
   same transaction. A background loop in the engine reclaims leases that expire
   (worker crashed or stalled), making the task pollable again.
 - ✅ **Graceful shutdown** — the engine runs the gRPC server and its background
-  loops under a `signal.NotifyContext` (SIGINT/SIGTERM).
+  loops under a `signal.NotifyContext` (SIGINT/SIGTERM); the metrics HTTP server
+  drains with a 5s timeout and the gRPC server does a `GracefulStop`.
 - ✅ **Auto-migration** — the engine runs SQL migrations from `./migrations` on
   boot.
+- ✅ **Prometheus metrics** — domain counters (`myengine_*`: workflows started /
+  terminated, activities scheduled / finished, activity retries, timers, signals,
+  leases reclaimed, task polls), plus gRPC server metrics (per-method request
+  counts + handling-time histograms) and the standard Go runtime / process
+  collectors, exposed on `:2112/metrics`. Domain counters increment only after
+  the owning transaction commits, so they reflect durable truth.
+- ✅ **Grafana dashboard** — a provisioned dashboard and Prometheus datasource
+  ship under `observability/`, wired up by `docker-compose.yml`.
+- ✅ **Structured JSON logging** — the engine logs via `slog` (JSON handler;
+  `DEBUG=1` raises the level to debug). A gRPC interceptor tags every request
+  with a request-scoped logger carrying the RPC name.
+- ✅ **Domain-error → gRPC status mapping** — known sentinels become precise
+  codes (`AlreadyExists`, `FailedPrecondition`, `NotFound`); anything else is
+  `Internal` with a generic message so internal details aren't leaked to callers.
+- ✅ **gRPC server reflection** — enabled so `grpcurl` and similar tools can
+  introspect the service without the `.proto`.
 
 ### Not implemented / partial
 
